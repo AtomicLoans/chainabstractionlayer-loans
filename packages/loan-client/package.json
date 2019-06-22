@@ -1,0 +1,44 @@
+{
+  "name": "@atomicloans/loan-client",
+  "umdName": "Client",
+  "umdExport": "default",
+  "version": "0.2.28",
+  "description": "Query different blockchains with account management using a single and simple interface.",
+  "module": "lib/index.js",
+  "main": "dist/index.cjs.js",
+  "files": [
+    "dist",
+    "lib"
+  ],
+  "scripts": {
+    "build:node": "webpack --config ../../webpack/webpack.node.config.js",
+    "build:browser": "webpack --config ../../webpack/webpack.browser.config.js",
+    "build": "webpack --config ../../webpack/webpack.config.js"
+  },
+  "author": "AtomicLoans <info@atomicloans.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@liquality/crypto": "^0.2.10",
+    "@liquality/errors": "^0.2.10",
+    "@liquality/schema": "^0.2.10",
+    "@babel/runtime": "^7.4.3",
+    "ajv": "^6.10.0",
+    "bignumber.js": "^8.1.1",
+    "debug": "^4.1.1",
+    "lodash": "^4.17.11"
+  },
+  "engines": {
+    "node": "~8.12.0"
+  },
+  "homepage": "https://github.com/liquality/chainabstractionlayer#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liquality/chainabstractionlayer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liquality/chainabstractionlayer/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
