@@ -23,7 +23,8 @@
     "@liquality/bitcoin-utils": "^0.2.10",
     "@liquality/crypto": "^0.2.10",
     "@liquality/provider": "^0.2.10",
-    "@liquality/utils": "^0.2.10"
+    "@liquality/utils": "^0.2.10",
+    "@atomicloans/provider": "0.2.34"
   },
   "engines": {
     "node": "~8.12.0"
@@ -38,5 +39,6 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "gitHead": "def81bb087551ce506ac2217af11d0984091bc89"
 }
