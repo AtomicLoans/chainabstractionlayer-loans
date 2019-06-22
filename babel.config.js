@@ -1,7 +1,7 @@
 module.exports = function (api) {
   api.cache(true)
 
-  const presets = [ '@babel/preset-env' ]
+  const presets = [ "es2015-node5" ]
   const plugins = [ 'istanbul' ]
 
   return {

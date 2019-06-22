@@ -76,14 +76,18 @@
 
    <script>
 /* global $, Bundle */
-debugger
 const { Client, providers, crypto } = Bundle
-const bitcoin = new Client()
+const { LoanClient } = LoanBundle
+const lproviders = LoanBundle.providers
+let bitcoin = new Client()
+const loan = new LoanClient()
+bitcoin.loan = loan
 const bitcoinNetworks = providers.bitcoin.BitcoinNetworks
 bitcoin.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider('http://localhost:8000', 'bitcoin', 'local321'))
-debugger
 bitcoin.addProvider(new providers.bitcoin.BitcoinLedgerProvider({ network: bitcoinNetworks.default.bitcoin_testnet, segwit: false }))
-bitcoin.addProvider(new providers.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks.default.bitcoin_testnet }))
+debugger
+bitcoin.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks.default.bitcoin_testnet }))
+debugger
 function generateSecret (client, prefix) {
   client.swap.generateSecret($(`#${prefix}Message`).val()).then(result => {
     $(`#${prefix}GenerateSecretResult`).text(result)

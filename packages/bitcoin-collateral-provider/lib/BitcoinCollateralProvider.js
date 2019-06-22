@@ -1,4 +1,4 @@
-import Provider from '@liquality/provider'
+import Provider from '@atomicloans/provider'
 import networks from '@liquality/bitcoin-networks'
 
 import {
