@@ -1,6 +1,6 @@
 {
-  "name": "@atomicloans/bundle",
-  "umdName": "Bundle",
+  "name": "@atomicloans/loan-bundle",
+  "umdName": "LoanBundle",
   "version": "0.2.32",
   "description": "",
   "module": "lib/index.js",
