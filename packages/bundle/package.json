@@ -1,7 +1,7 @@
 {
   "name": "@atomicloans/bundle",
   "umdName": "Bundle",
-  "version": "0.2.30",
+  "version": "0.2.29",
   "description": "",
   "module": "lib/index.js",
   "main": "dist/index.cjs.js",
