@@ -2,7 +2,7 @@
   "name": "@atomicloans/bitcoin-collateral-provider",
   "umdName": "BitcoinCollateralProvider",
   "umdExport": "default",
-  "version": "0.2.34",
+  "version": "0.2.35",
   "description": "",
   "module": "lib/index.js",
   "main": "dist/index.cjs.js",
@@ -18,13 +18,13 @@
   "author": "AtomicLoans <info@atomicloans.io>",
   "license": "MIT",
   "dependencies": {
+    "@atomicloans/provider": "^0.2.35",
     "@babel/runtime": "^7.4.3",
     "@liquality/bitcoin-networks": "^0.2.10",
     "@liquality/bitcoin-utils": "^0.2.10",
     "@liquality/crypto": "^0.2.10",
     "@liquality/provider": "^0.2.10",
-    "@liquality/utils": "^0.2.10",
-    "@atomicloans/provider": "0.2.34"
+    "@liquality/utils": "^0.2.10"
   },
   "engines": {
     "node": "~8.12.0"
