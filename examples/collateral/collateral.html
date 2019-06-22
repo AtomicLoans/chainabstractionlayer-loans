@@ -2,8 +2,9 @@
 
  <head>
   <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-  <script src="../../../packages/bundle/dist/bundle.min.js"></script>
+  
   <script src="./liquality.bundle.min.js"></script>
+  <script src="../../../packages/loan-bundle/dist/loan-bundle.min.js"></script>
 </head>
 
  <body>
@@ -80,8 +81,9 @@ const { Client, providers, crypto } = Bundle
 const bitcoin = new Client()
 const bitcoinNetworks = providers.bitcoin.BitcoinNetworks
 bitcoin.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider('http://localhost:8000', 'bitcoin', 'local321'))
-bitcoin.addProvider(new providers.bitcoin.BitcoinLedgerProvider({ network: bitcoinNetworks.bitcoin_testnet, segwit: false }))
-bitcoin.addProvider(new providers.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks.bitcoin_testnet }))
+debugger
+bitcoin.addProvider(new providers.bitcoin.BitcoinLedgerProvider({ network: bitcoinNetworks.default.bitcoin_testnet, segwit: false }))
+bitcoin.addProvider(new providers.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks.default.bitcoin_testnet }))
 function generateSecret (client, prefix) {
   client.swap.generateSecret($(`#${prefix}Message`).val()).then(result => {
     $(`#${prefix}GenerateSecretResult`).text(result)
