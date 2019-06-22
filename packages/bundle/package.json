@@ -18,6 +18,7 @@
   "license": "MIT",
   "dependencies": {
     "@atomicloans/bitcoin-collateral-provider": "^0.2.30",
+    "@atomicloans/loan-client": "^0.2.32",
     "@babel/runtime": "^7.4.3",
     "@ledgerhq/hw-transport-web-ble": "^4.57.0",
     "@ledgerhq/hw-transport-webusb": "^4.57.0",
@@ -38,5 +39,5 @@
   "publishConfig": {
     "access": "public"
   },
-  "gitHead": "16aab0d6a0cecc8447b0b4bd757fc388d6cfd2cc"
+  "gitHead": "9db3e317f0b1451469249af401eb9c63ee9e28e6"
 }
