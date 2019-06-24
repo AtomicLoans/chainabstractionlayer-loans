@@ -2,7 +2,7 @@
   "name": "@atomicloans/bitcoin-collateral-agent-provider",
   "umdName": "BitcoinCollateralAgentProvider",
   "umdExport": "default",
-  "version": "0.2.39",
+  "version": "0.2.40",
   "description": "",
   "module": "lib/index.js",
   "main": "dist/index.cjs.js",
@@ -18,7 +18,7 @@
   "author": "AtomicLoans <info@atomicloans.io>",
   "license": "MIT",
   "dependencies": {
-    "@atomicloans/provider": "^0.2.39",
+    "@atomicloans/provider": "^0.2.40",
     "@babel/runtime": "^7.4.3",
     "@liquality/bitcoin-networks": "^0.2.10",
     "@liquality/bitcoin-utils": "^0.2.10",

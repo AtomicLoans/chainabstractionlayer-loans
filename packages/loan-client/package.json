@@ -2,7 +2,7 @@
   "name": "@atomicloans/loan-client",
   "umdName": "LoanClient",
   "umdExport": "default",
-  "version": "0.2.39",
+  "version": "0.2.40",
   "description": "Query different blockchains with account management using a single and simple interface.",
   "module": "lib/index.js",
   "main": "dist/index.cjs.js",
