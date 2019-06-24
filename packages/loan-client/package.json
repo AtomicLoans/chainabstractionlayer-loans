@@ -22,6 +22,7 @@
     "@liquality/crypto": "^0.2.10",
     "@liquality/errors": "^0.2.10",
     "@liquality/schema": "^0.2.10",
+    "@liquality/client": "^0.2.10",
     "ajv": "^6.10.0",
     "bignumber.js": "^8.1.1",
     "debug": "^4.1.1",
@@ -41,5 +42,5 @@
   "publishConfig": {
     "access": "public"
   },
-  "gitHead": "1085e21ddf51f8c0c48e26b7035f5dc7b111518e"
+  "gitHead": "abd86260fdac3017ed618cebe58239cb5ee91ba3"
 }
