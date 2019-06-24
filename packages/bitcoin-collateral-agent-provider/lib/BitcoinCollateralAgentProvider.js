@@ -47,7 +47,7 @@ export default class BitcoinCollateralAgentProvider extends Provider {
         'a1', // OP_LESSTHANOREQUAL
         '69', // OP_VERIFY
         'a8', // OP_SHA256
-        '20', secretHashB2, // OP_PUSHDATA(32) {secretHashB2}
+        '20', secretHashB1, // OP_PUSHDATA(32) {secretHashB2}
         '87', // OP_EQUAL
         '7c', // OP_SWAP
         '82', // OP_SIZE
@@ -56,10 +56,10 @@ export default class BitcoinCollateralAgentProvider extends Provider {
         'a1', // OP_LESSTHANOREQUAL
         '69', // OP_VERIFY
         'a8', // OP_SHA256
-        '20', secretHashC2, // OP_PUSHDATA(32) {secretHashC2}
+        '20', secretHashC1, // OP_PUSHDATA(32) {secretHashC2}
         '87', // OP_EQUAL
         '93', // OP_ADD
-        '52', // PUSH #2
+        '51', // PUSH #1
         'a2', // OP_GREATERTHANOREQUAL
         '69', // OP_VERIFY
         '76', 'a9', // OP_DUP OP_HASH160
@@ -149,7 +149,7 @@ export default class BitcoinCollateralAgentProvider extends Provider {
         'a1', // OP_LESSTHANOREQUAL
         '69', // OP_VERIFY
         'a8', // OP_SHA256
-        '20', secretHashB2, // OP_PUSHDATA(32) {secretHashB2}
+        '20', secretHashB1, // OP_PUSHDATA(32) {secretHashB2}
         '87', // OP_EQUAL
         '7c', // OP_SWAP
         '82', // OP_SIZE
@@ -158,10 +158,10 @@ export default class BitcoinCollateralAgentProvider extends Provider {
         'a1', // OP_LESSTHANOREQUAL
         '69', // OP_VERIFY
         'a8', // OP_SHA256
-        '20', secretHashC2, // OP_PUSHDATA(32) {secretHashC2}
+        '20', secretHashC1, // OP_PUSHDATA(32) {secretHashC2}
         '87', // OP_EQUAL
         '93', // OP_ADD
-        '52', // PUSH #2
+        '51', // PUSH #1
         'a2', // OP_GREATERTHANOREQUAL
         '69', // OP_VERIFY
         '76', 'a9', // OP_DUP OP_HASH160
@@ -263,11 +263,13 @@ export default class BitcoinCollateralAgentProvider extends Provider {
     const secretB1 = isLender ? secretParamB1 : '00'
     const secretC1 = isLender ? '00' : secretParamC1
 
+    debugger
+
     const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration)
     const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
 
-    const refundableResult = await this._refund(refundableTxHash, refundableScript, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretB1, secretC1, loanExpiration, biddingExpiration, seizureExpiration, false, 'loanPeriod')
-    const seizableResult = await this._refund(seizableTxHash, seizableScript, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretB1, secretC1, loanExpiration, biddingExpiration, seizureExpiration, true, 'loanPeriod')
+    const refundableResult = await this._refund(refundableTxHash, refundableScript, borrowerPubKey, lenderPubKey, secretHashA1, secretB1, secretC1, loanExpiration, biddingExpiration, seizureExpiration, false, 'loanPeriod')
+    const seizableResult = await this._refund(seizableTxHash, seizableScript, borrowerPubKey, lenderPubKey, secretHashA1, secretB1, secretC1, loanExpiration, biddingExpiration, seizureExpiration, true, 'loanPeriod')
 
     return { refundableResult, seizableResult }
   }
@@ -399,6 +401,7 @@ export default class BitcoinCollateralAgentProvider extends Provider {
   }
 
   async _refund (initiationTxHash, script, borrowerPubKey, lenderPubKey, borrowerSecretParam, lenderSecretParam, agentSecretParam, loanExpiration, biddingExpiration, seizureExpiration, seizable, period) {
+    debugger
     let secret1, secret2, lockTime
     let requiresSecret = false
     let requiresTwoSecrets = false
@@ -406,6 +409,7 @@ export default class BitcoinCollateralAgentProvider extends Provider {
       secret1 = lenderSecretParam
       secret2 = agentSecretParam
       requiresSecret = true
+      requiresTwoSecrets = true
     } else if (period === 'seizurePeriod' && seizable === true) {
       secret1 = borrowerSecretParam
       requiresSecret = true
@@ -436,6 +440,7 @@ export default class BitcoinCollateralAgentProvider extends Provider {
 
     const txHashLE = Buffer.from(initiationTxHash, 'hex').reverse().toString('hex') // TX HASH IN LITTLE ENDIAN
     const newTxInput = this.generateSigTxInput(txHashLE, voutIndex, script)
+    debugger
     const newTx = this.generateRawTx(initiationTx, voutIndex, to, newTxInput, lockTimeHex)
     const splitNewTx = await this.getMethod('splitTransaction')(newTx, true)
     const outputScriptObj = await this.getMethod('serializeTransactionOutputs')(splitNewTx)
@@ -450,10 +455,12 @@ export default class BitcoinCollateralAgentProvider extends Provider {
       lockTime
     )
 
+    debugger
     const spend = this._spend(signature[0], pubKey, secret1, secret2, requiresSecret, requiresTwoSecrets, period)
     const spendInput = this._spendInput(spend, script)
     const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
     const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
+    debugger
 
     return this.getMethod('sendRawTransaction')(rawClaimTx)
   }
@@ -546,6 +553,7 @@ export default class BitcoinCollateralAgentProvider extends Provider {
   }
 
   _spend (signature, pubKey, secret1, secret2, requiresSecret, requiresTwoSecrets, period) {
+    debugger
     var ifBranch
     if (period === 'loanPeriod') {
       ifBranch = ['51']
@@ -573,6 +581,8 @@ export default class BitcoinCollateralAgentProvider extends Provider {
       ]
       : []
 
+    debugger
+
     const signatureEncoded = signature + '01'
     const signaturePushDataOpcode = padHexStart((signatureEncoded.length / 2).toString(16))
     const pubKeyPushDataOpcode = padHexStart((pubKey.length / 2).toString(16))
@@ -582,8 +592,8 @@ export default class BitcoinCollateralAgentProvider extends Provider {
       signatureEncoded,
       pubKeyPushDataOpcode,
       pubKey,
-      ...encodedSecret1,
       ...encodedSecret2,
+      ...encodedSecret1,
       ...ifBranch
     ]
 
@@ -636,9 +646,11 @@ export default class BitcoinCollateralAgentProvider extends Provider {
   }
 
   generateRawTx (initiationTx, voutIndex, address, input, locktime) {
+    debugger
     const output = initiationTx.outputs[voutIndex]
+    debugger
     const value = parseInt(reverseBuffer(output.amount).toString('hex'), 16)
-    const fee = calculateFee(1, 1, 3)
+    const fee = calculateFee(2, 2, 7)
     const amount = value - fee
     const amountLE = Buffer.from(padHexStart(amount.toString(16), 16), 'hex').reverse().toString('hex') // amount in little endian
     const pubKeyHash = addressToPubKeyHash(address)
