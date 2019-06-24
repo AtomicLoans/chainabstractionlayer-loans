@@ -2,6 +2,7 @@ import { find, findLast, findLastIndex, isFunction } from 'lodash'
 import debug from 'debug'
 
 import Collateral from './Collateral'
+import CollateralAgent from './CollateralAgent'
 
 import {
   DuplicateProviderError,
@@ -18,7 +19,8 @@ export default class LoanClient {
   /**
    * Client
    */
-  constructor () {
+  constructor (client) {
+    this.client = client
     /**
      * @type {Array}
      */
@@ -30,6 +32,7 @@ export default class LoanClient {
     this.version = version
 
     this._collateral = new Collateral(this)
+    this._collateralAgent = new CollateralAgentl(this)
   }
 
   /**
@@ -72,20 +75,20 @@ export default class LoanClient {
    *  version specified
    */
   getProviderForMethod (method, requestor = false) {
-    if (this._providers.length === 0) {
+    if (this._providers.concat(this.client._providers).length === 0) {
       throw new NoProviderError('No provider provided. Add a provider to the client')
     }
 
     let indexOfRequestor = requestor
       ? findLastIndex(
-        this._providers,
+        this._providers.concat(this.client._providers),
         provider => requestor.constructor === provider.constructor
-      ) : this._providers.length
+      ) : this._providers.concat(this.client._providers).length
 
     if (indexOfRequestor === -1) indexOfRequestor = 0
 
-    const provider = findLast(
-      this._providers,
+    let provider = findLast(
+      this._providers.concat(this.client._providers),
       provider => isFunction(provider[method]), indexOfRequestor - 1
     )
 
@@ -116,6 +119,10 @@ export default class LoanClient {
 
   get collateral () {
     return this._collateral
+  }
+
+  get collateralAgent () {
+    return this._collateralAgent
   }
 }
 

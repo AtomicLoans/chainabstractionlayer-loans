@@ -1,0 +1,3 @@
+import BitcoinCollateralAgentProvider from './BitcoinCollateralAgentProvider'
+
+export default BitcoinCollateralAgentProvider

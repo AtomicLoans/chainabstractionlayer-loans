@@ -2,7 +2,7 @@
   "name": "@atomicloans/provider",
   "umdName": "Provider",
   "umdExport": "default",
-  "version": "0.2.37",
+  "version": "0.2.38",
   "description": "",
   "module": "lib/index.js",
   "main": "dist/index.cjs.js",

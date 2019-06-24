@@ -172,7 +172,7 @@ export default class BitcoinCollateralProvider extends Provider {
     ].join('')
   }
 
-  async lock (refundableValue, seizableValue, borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration) {
+  async lock (refundableValue, seizableValue, borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration) {    
     const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration)
     const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration)
 
@@ -182,7 +182,10 @@ export default class BitcoinCollateralProvider extends Provider {
     const refundableP2shAddress = pubKeyToAddress(refundableScriptPubKey, this._network.name, 'scriptHash')
     const seizableP2shAddress = pubKeyToAddress(seizableScriptPubKey, this._network.name, 'scriptHash')
 
-    return this.getMethod('sendTransaction')(refundableP2shAddress, refundableValue, refundableScript, null, [{ to: seizableP2shAddress, value: seizableValue, data: seizableScript }])
+    const refundableResult = await this.getMethod('sendTransaction')(refundableP2shAddress, refundableValue, refundableScript)
+    const seizableResult = await this.getMethod('sendTransaction')(seizableP2shAddress, seizableValue, seizableScript)
+
+    return { refundableResult, seizableResult }
   }
 
   async refund (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration) {
@@ -369,6 +372,7 @@ export default class BitcoinCollateralProvider extends Provider {
 
     const spend = this._spend(signature[0], pubKey, secret, requiresSecret, period)
     const spendInput = this._spendInput(spend, script)
+    debugger
     const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
     const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
 
@@ -422,8 +426,11 @@ export default class BitcoinCollateralProvider extends Provider {
 
     const spend = this._spendMultisig(secretA2, secretB2, borrowerSignature, lenderSignature)
     const spendInput = this._spendInput(spend, script)
-    const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput)
+    debugger
+    const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
     const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
+
+    debugger
 
     return this.getMethod('sendRawTransaction')(rawClaimTx)
   }
@@ -522,7 +529,9 @@ export default class BitcoinCollateralProvider extends Provider {
   }
 
   generateRawTxInput (txHashLE, script, voutIndex) {
+    debugger
     const inputTxOutput = Buffer.from(padHexStart(voutIndex.toString(16), 8), 'hex').reverse().toString('hex')
+    debugger
     const scriptLength = Buffer.from(padHexStart((script.length / 2).toString(16)), 'hex').reverse().toString('hex')
 
     return [
@@ -540,7 +549,7 @@ export default class BitcoinCollateralProvider extends Provider {
   generateRawTx (initiationTx, voutIndex, address, input, locktime) {
     const output = initiationTx.outputs[voutIndex]
     const value = parseInt(reverseBuffer(output.amount).toString('hex'), 16)
-    const fee = calculateFee(1, 1, 3)
+    const fee = calculateFee(1, 1, 6)
     const amount = value - fee
     const amountLE = Buffer.from(padHexStart(amount.toString(16), 16), 'hex').reverse().toString('hex') // amount in little endian
     const pubKeyHash = addressToPubKeyHash(address)

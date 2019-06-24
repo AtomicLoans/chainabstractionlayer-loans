@@ -1,6 +1,6 @@
 {
-  "name": "@atomicloans/bitcoin-collateral-provider",
-  "umdName": "BitcoinCollateralProvider",
+  "name": "@atomicloans/bitcoin-collateral-agent-provider",
+  "umdName": "BitcoinCollateralAgentProvider",
   "umdExport": "default",
   "version": "0.2.38",
   "description": "",
