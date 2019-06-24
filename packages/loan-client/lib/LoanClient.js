@@ -32,7 +32,7 @@ export default class LoanClient {
     this.version = version
 
     this._collateral = new Collateral(this)
-    this._collateralAgent = new CollateralAgentl(this)
+    this._collateralAgent = new CollateralAgent(this)
   }
 
   /**
