@@ -1,7 +1,7 @@
 {
   "name": "@atomicloans/loan-bundle",
   "umdName": "LoanBundle",
-  "version": "0.2.41",
+  "version": "0.2.42",
   "description": "",
   "module": "lib/index.js",
   "main": "dist/index.cjs.js",
@@ -17,8 +17,8 @@
   "author": "AtomicLoans <info@atomicloans.io>",
   "license": "MIT",
   "dependencies": {
-    "@atomicloans/bitcoin-collateral-provider": "^0.2.41",
-    "@atomicloans/loan-client": "^0.2.41",
+    "@atomicloans/bitcoin-collateral-provider": "^0.2.42",
+    "@atomicloans/loan-client": "^0.2.42",
     "@babel/runtime": "^7.4.3",
     "@ledgerhq/hw-transport-web-ble": "^4.57.0",
     "@ledgerhq/hw-transport-webusb": "^4.57.0",
