@@ -222,10 +222,13 @@ function multisigSignCollateral (client, prefix, isBorrower) {
 function multisigSendCollateral (client, prefix) {
   const borrowerPubKey = $(`#${prefix}BorrowerPubKey`).val()
   const lenderPubKey = $(`#${prefix}LenderPubKey`).val()
+  const agentPubKey = $(`#${prefix}AgentPubKey`).val()
   const secretHashA1 = $(`#${prefix}SecretHashA1`).val()
   const secretA2 = $(`#${prefix}SecretA2`).val()
-  const SecretHashB1 = $(`#${prefix}SecretHashB1`).val()
+  const secretHashB1 = $(`#${prefix}SecretHashB1`).val()
   const secretB2 = $(`#${prefix}SecretB2`).val()
+  const secretHashC1 = $(`#${prefix}SecretHashC1`).val()
+  const secretHashC2 = $(`#${prefix}SecretHashC2`).val()
   const loanExpiration = parseInt($(`#${prefix}LoanExpiration`).val())
   const biddingExpiration = parseInt($(`#${prefix}BiddingExpiration`).val())
   const seizureExpiration = parseInt($(`#${prefix}SeizureExpiration`).val())
@@ -241,7 +244,7 @@ function multisigSendCollateral (client, prefix) {
     seizableSignature: $(`#${prefix}LenderSignMultisigSeizableResult`).val()
   }
 
-  client.loan.collateralAgent.multisigSend(refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, secretHashA1, secretA2, SecretHashB1, secretB2, loanExpiration, biddingExpiration, seizureExpiration, borrowerSignatures, lenderSignatures, to).then(result => {
+  client.loan.collateralAgent.multisigSend(refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretA2, secretHashB1, secretB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration, borrowerSignatures, lenderSignatures, to, '2').then(result => {
     $(`#${prefix}MultisigRefundableResult`).text(result.refundableResult)
     $(`#${prefix}MultisigSeizableResult`).text(result.seizableResult)
   })
