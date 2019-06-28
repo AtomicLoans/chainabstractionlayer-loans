@@ -18,6 +18,7 @@
   "author": "Atomic Loans <info@atomicloans.io>",
   "license": "MIT",
   "dependencies": {
+    "@atomicloans/provider": "^0.2.43",
     "@babel/runtime": "^7.4.3",
     "@liquality/bitcoin-networks": "^0.2.10",
     "@liquality/bitcoin-utils": "^0.2.10",
