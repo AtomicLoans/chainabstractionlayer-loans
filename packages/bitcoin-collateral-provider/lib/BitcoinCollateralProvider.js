@@ -39,50 +39,50 @@ export default class BitcoinCollateralProvider extends Provider {
 
     return [
       '63', // OP_IF
-      '82', // OP_SIZE
-      '01', // OP_PUSHDATA(1)
-      '20', // Hex 32
-      '88', // OP_EQUALVERIFY
-      'a8', // OP_SHA256
-      '20', secretHashB1, // OP_PUSHDATA(32) {secretHashB1}
-      '88', // OP_EQUALVERIFY
-      '76', 'a9', // OP_DUP OP_HASH160
-      '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
-      '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
+        '82', // OP_SIZE
+        '01', // OP_PUSHDATA(1)
+        '20', // Hex 32
+        '88', // OP_EQUALVERIFY
+        'a8', // OP_SHA256
+        '20', secretHashB1, // OP_PUSHDATA(32) {secretHashB1}
+        '88', // OP_EQUALVERIFY
+        '76', 'a9', // OP_DUP OP_HASH160
+        '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
+        '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
       '67', // OP_ELSE
-      '63', // OP_IF
-      '82', // OP_SIZE
-      '01', // OP_PUSHDATA(1)
-      '20', // Hex 32
-      '88', // OP_EQUALVERIFY
-      'a8', // OP_SHA256
-      '20', secretHashA2, // OP_PUSHDATA(32) {secretHashA2}
-      '88', // OP_EQUALVERIFY
-      '82', // OP_SIZE
-      '01', // OP_PUSHDATA(1)
-      '20', // Hex 32
-      '88', // OP_EQUALVERIFY
-      'a8', // OP_SHA256
-      '20', secretHashB2, // OP_PUSHDATA(32) {secretHashB2}
-      '88', // OP_EQUALVERIFY
-      loanExpirationPushDataOpcode, // OP_PUSHDATA({loanExpirationHexLength})
-      loanExpirationHexEncoded, // {loanExpirationHexEncoded}
-      'b1', // OP_CHECKLOCKTIMEVERIFY
-      '75', // OP_DROP
-      '52', // PUSH #2
-      borrowerPubKeyPushDataOpcode, borrowerPubKey, // OP_PUSHDATA({alicePubKeyLength}) {alicePubKey}
-      lenderPubKeyPushDataOpcode, lenderPubKey, // OP_PUSHDATA({bobPubKeyLength}) {bobPubKey}
-      '52', // PUSH #2
-      'ae', // CHECKMULTISIG
-      '67', // OP_ELSE
-      biddingExpirationPushDataOpcode, // OP_PUSHDATA({biddingExpirationHexLength})
-      biddingExpirationHexEncoded, // {biddingExpirationHexEncoded}
-      'b1', // OP_CHECKLOCKTIMEVERIFY
-      '75', // OP_DROP
-      '76', 'a9', // OP_DUP OP_HASH160
-      '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
-      '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
-      '68', // OP_ENDIF
+        '63', // OP_IF
+          '82', // OP_SIZE
+          '01', // OP_PUSHDATA(1)
+          '20', // Hex 32
+          '88', // OP_EQUALVERIFY
+          'a8', // OP_SHA256
+          '20', secretHashA2, // OP_PUSHDATA(32) {secretHashA2}
+          '88', // OP_EQUALVERIFY
+          '82', // OP_SIZE
+          '01', // OP_PUSHDATA(1)
+          '20', // Hex 32
+          '88', // OP_EQUALVERIFY
+          'a8', // OP_SHA256
+          '20', secretHashB2, // OP_PUSHDATA(32) {secretHashB2}
+          '88', // OP_EQUALVERIFY
+          loanExpirationPushDataOpcode, // OP_PUSHDATA({loanExpirationHexLength})
+          loanExpirationHexEncoded, // {loanExpirationHexEncoded}
+          'b1', // OP_CHECKLOCKTIMEVERIFY
+          '75', // OP_DROP
+          '52', // PUSH #2
+          borrowerPubKeyPushDataOpcode, borrowerPubKey, // OP_PUSHDATA({alicePubKeyLength}) {alicePubKey}
+          lenderPubKeyPushDataOpcode, lenderPubKey, // OP_PUSHDATA({bobPubKeyLength}) {bobPubKey}
+          '52', // PUSH #2
+          'ae', // CHECKMULTISIG
+        '67', // OP_ELSE
+          biddingExpirationPushDataOpcode, // OP_PUSHDATA({biddingExpirationHexLength})
+          biddingExpirationHexEncoded, // {biddingExpirationHexEncoded}
+          'b1', // OP_CHECKLOCKTIMEVERIFY
+          '75', // OP_DROP
+          '76', 'a9', // OP_DUP OP_HASH160
+          '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
+          '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
+        '68', // OP_ENDIF
       '68' // OP_ENDIF
     ].join('')
   }
@@ -107,67 +107,67 @@ export default class BitcoinCollateralProvider extends Provider {
 
     return [
       '63', // OP_IF
-      '82', // OP_SIZE
-      '01', // OP_PUSHDATA(1)
-      '20', // Hex 32
-      '88', // OP_EQUALVERIFY
-      'a8', // OP_SHA256
-      '20', secretHashB1, // OP_PUSHDATA(32) {secretHashB1}
-      '88', // OP_EQUALVERIFY
-      '76', 'a9', // OP_DUP OP_HASH160
-      '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
-      '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
+        '82', // OP_SIZE
+        '01', // OP_PUSHDATA(1)
+        '20', // Hex 32
+        '88', // OP_EQUALVERIFY
+        'a8', // OP_SHA256
+        '20', secretHashB1, // OP_PUSHDATA(32) {secretHashB1}
+        '88', // OP_EQUALVERIFY
+        '76', 'a9', // OP_DUP OP_HASH160
+        '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
+        '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
       '67', // OP_ELSE
-      '63', // OP_IF
-      loanExpirationPushDataOpcode, // OP_PUSHDATA({loanExpirationHexLength})
-      loanExpirationHexEncoded, // {loanExpirationHexEncoded}
-      'b1', // OP_CHECKLOCKTIMEVERIFY
-      '75', // OP_DROP
-      '82', // OP_SIZE
-      '01', // OP_PUSHDATA(1)
-      '20', // Hex 32
-      '88', // OP_EQUALVERIFY
-      'a8', // OP_SHA256
-      '20', secretHashA2, // OP_PUSHDATA(32) {secretHashA2}
-      '88', // OP_EQUALVERIFY
-      '82', // OP_SIZE
-      '01', // OP_PUSHDATA(1)
-      '20', // Hex 32
-      '88', // OP_EQUALVERIFY
-      'a8', // OP_SHA256
-      '20', secretHashB2, // OP_PUSHDATA(32) {secretHashB2}
-      '88', // OP_EQUALVERIFY
-      '52', // PUSH #2
-      borrowerPubKeyPushDataOpcode, borrowerPubKey, // OP_PUSHDATA({alicePubKeyLength}) {alicePubKey}
-      lenderPubKeyPushDataOpcode, lenderPubKey, // OP_PUSHDATA({bobPubKeyLength}) {bobPubKey}
-      '52', // PUSH #2
-      'ae', // CHECKMULTISIG
-      '67', // OP_ELSE
-      '63', // OP_IF
-      biddingExpirationPushDataOpcode, // OP_PUSHDATA({expirationHexLength})
-      biddingExpirationHexEncoded, // {expirationHexEncoded}
-      'b1', // OP_CHECKLOCKTIMEVERIFY
-      '75', // OP_DROP
-      '82', // OP_SIZE
-      '01', // OP_PUSHDATA(1)
-      '20', // Hex 32
-      '88', // OP_EQUALVERIFY
-      'a8', // OP_SHA256
-      '20', secretHashA1, // OP_PUSHDATA(32) {secretHashA1}
-      '88', // OP_EQUALVERIFY
-      '76', 'a9', // OP_DUP OP_HASH160
-      '14', lenderPubKeyHash, // OP_PUSHDATA(20) {bobPubKeyHash}
-      '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
-      '67', // OP_ELSE
-      seizureExpirationPushDataOpcode, // OP_PUSHDATA({seizureExpirationHexLength})
-      seizureExpirationHexEncoded, // {seizureExpirationHexEncoded}
-      'b1', // OP_CHECKLOCKTIMEVERIFY
-      '75', // OP_DROP
-      '76', 'a9', // OP_DUP OP_HASH160
-      '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
-      '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
-      '68', // OP_ENDIF
-      '68', // OP_ENDIF
+        '63', // OP_IF
+          loanExpirationPushDataOpcode, // OP_PUSHDATA({loanExpirationHexLength})
+          loanExpirationHexEncoded, // {loanExpirationHexEncoded}
+          'b1', // OP_CHECKLOCKTIMEVERIFY
+          '75', // OP_DROP
+          '82', // OP_SIZE
+          '01', // OP_PUSHDATA(1)
+          '20', // Hex 32
+          '88', // OP_EQUALVERIFY
+          'a8', // OP_SHA256
+          '20', secretHashA2, // OP_PUSHDATA(32) {secretHashA2}
+          '88', // OP_EQUALVERIFY
+          '82', // OP_SIZE
+          '01', // OP_PUSHDATA(1)
+          '20', // Hex 32
+          '88', // OP_EQUALVERIFY
+          'a8', // OP_SHA256
+          '20', secretHashB2, // OP_PUSHDATA(32) {secretHashB2}
+          '88', // OP_EQUALVERIFY
+          '52', // PUSH #2
+          borrowerPubKeyPushDataOpcode, borrowerPubKey, // OP_PUSHDATA({alicePubKeyLength}) {alicePubKey}
+          lenderPubKeyPushDataOpcode, lenderPubKey, // OP_PUSHDATA({bobPubKeyLength}) {bobPubKey}
+          '52', // PUSH #2
+          'ae', // CHECKMULTISIG
+        '67', // OP_ELSE
+          '63', // OP_IF
+            biddingExpirationPushDataOpcode, // OP_PUSHDATA({expirationHexLength})
+            biddingExpirationHexEncoded, // {expirationHexEncoded}
+            'b1', // OP_CHECKLOCKTIMEVERIFY
+            '75', // OP_DROP
+            '82', // OP_SIZE
+            '01', // OP_PUSHDATA(1)
+            '20', // Hex 32
+            '88', // OP_EQUALVERIFY
+            'a8', // OP_SHA256
+            '20', secretHashA1, // OP_PUSHDATA(32) {secretHashA1}
+            '88', // OP_EQUALVERIFY
+            '76', 'a9', // OP_DUP OP_HASH160
+            '14', lenderPubKeyHash, // OP_PUSHDATA(20) {bobPubKeyHash}
+            '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
+          '67', // OP_ELSE
+            seizureExpirationPushDataOpcode, // OP_PUSHDATA({seizureExpirationHexLength})
+            seizureExpirationHexEncoded, // {seizureExpirationHexEncoded}
+            'b1', // OP_CHECKLOCKTIMEVERIFY
+            '75', // OP_DROP
+            '76', 'a9', // OP_DUP OP_HASH160
+            '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
+            '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
+          '68', // OP_ENDIF
+        '68', // OP_ENDIF
       '68' // OP_ENDIF
     ].join('')
   }
