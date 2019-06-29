@@ -222,7 +222,6 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
     const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
 
-    debugger
     const refundableResult = await this._multisigSend(refundableTxHash, refundableScript, loanExpiration, signatureOne.refundableSignature, signatureTwo.refundableSignature, to)
     const seizableResult = await this._multisigSend(seizableTxHash, seizableScript, loanExpiration, signatureOne.seizableSignature, signatureTwo.seizableSignature, to)
 
@@ -360,8 +359,6 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
     const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
 
-    debugger
-
     return this.getMethod('sendRawTransaction')(rawClaimTx)
   }
 
@@ -413,11 +410,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const spend = this._spendMultisig(signatureOne, signatureTwo)
     const spendInput = this._spendInput(spend, script)
 
-    debugger
     const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
-    debugger
     const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
-    debugger
 
     return this.getMethod('sendRawTransaction')(rawClaimTx)
   }
@@ -525,11 +519,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   generateRawTx (initiationTx, voutIndex, address, input, locktime) {
-    debugger
     const output = initiationTx.outputs[voutIndex]
-    debugger
     const value = parseInt(reverseBuffer(output.amount).toString('hex'), 16)
-    debugger
     const fee = calculateFee(2, 2, 7)
     const amount = value - fee
     const amountLE = Buffer.from(padHexStart(amount.toString(16), 16), 'hex').reverse().toString('hex') // amount in little endian
