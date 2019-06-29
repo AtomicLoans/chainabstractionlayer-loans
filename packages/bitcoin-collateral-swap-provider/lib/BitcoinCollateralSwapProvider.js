@@ -5,6 +5,7 @@ import {
   calculateFee,
   addressToPubKeyHash,
   pubKeyToAddress,
+  pubKeyHashToAddress,
   reverseBuffer,
   scriptNumEncode
 } from '@liquality/bitcoin-utils'
@@ -23,7 +24,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     this._network = chain.network
   }
 
-  createRefundableScript (borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashD1, loanExpiration, biddingExpiration) {
+  createRefundableScript (borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration) {
     let loanExpirationHex = scriptNumEncode(loanExpiration)
     let biddingExpirationHex = scriptNumEncode(biddingExpiration)
 
@@ -50,7 +51,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
         '88', // OP_EQUALVERIFY
         '76', // OP_DUP
         'a9', // OP_HASH160
-        '14', recipientPubKeyHash, // OP_PUSHDATA(20) {recipientPubKeyHash}
+        '14', bidderPubKeyHash, // OP_PUSHDATA(20) {recipientPubKeyHash}
+        '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
       '67', // OP_ELSE
         '63', // OP_IF
           loanExpirationPushDataOpcode, // OP_PUSHDATA({loanExpirationHexLength})
@@ -76,7 +78,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ].join('')
   }
 
-  createSeizableScript (borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration) {
+  createSeizableScript (borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration) {
     let loanExpirationHex = scriptNumEncode(loanExpiration)
     let biddingExpirationHex = scriptNumEncode(biddingExpiration)
     let seizureExpirationHex = scriptNumEncode(seizureExpiration)
@@ -107,7 +109,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
         '88', // OP_EQUALVERIFY
         '76', // OP_DUP
         'a9', // OP_HASH160
-        '14', recipientPubKeyHash, // OP_PUSHDATA(20) {recipientPubKeyHash}
+        '14', bidderPubKeyHash, // OP_PUSHDATA(20) {recipientPubKeyHash}
+        '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
       '67', // OP_ELSE
         '63', // OP_IF
           loanExpirationPushDataOpcode, // OP_PUSHDATA({loanExpirationHexLength})
@@ -150,9 +153,9 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ].join('')
   }
 
-  async lock (refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration) {    
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
+  async lock (refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration) {    
+    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
+    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
 
     const refundableScriptPubKey = padHexStart(refundableScript)
     const seizableScriptPubKey = padHexStart(seizableScript)
@@ -166,14 +169,15 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return { refundableResult, seizableResult }
   }
 
-  async refund (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration) {
+  async refund (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration) {
     const secretHashD1 = sha256(secretD1)
+    const bidderPubKeyHash = hash160(bidderPubKey)
 
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
+    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
+    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
 
-    const refundableResult = await this._refund(refundableTxHash, refundableScript, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration, false, 'loanPeriod')
-    const seizableResult = await this._refund(seizableTxHash, seizableScript, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration, true, 'loanPeriod')
+    const refundableResult = await this._refund(refundableTxHash, refundableScript, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration, false, 'loanPeriod')
+    const seizableResult = await this._refund(seizableTxHash, seizableScript, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration, true, 'loanPeriod')
 
     return { refundableResult, seizableResult }
   }
@@ -198,9 +202,11 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return this._refund(seizableTxHash, seizableScript, borrowerPubKey, lenderPubKey, secretHashA1, secretHashB1, loanExpiration, biddingExpiration, seizureExpiration, true, 'refundPeriod')
   }
 
-  async multisigSign (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration, isBorrower, to) {
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration)
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
+  async multisigSign (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration, isBorrower, to) {
+    const bidderPubKeyHash = hash160(bidderPubKey)
+
+    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
+    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
 
     const from = isBorrower ? pubKeyToAddress(borrowerPubKey, this._network.name, 'pubKeyHash') : pubKeyToAddress(lenderPubKey, this._network.name, 'pubKeyHash')
 
@@ -210,20 +216,15 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return { refundableSignature, seizableSignature }
   }
 
-  async multisigSend (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretParamA2, secretHashB1, secretParamB2, secretHashC1, secretParamC2, loanExpiration, biddingExpiration, seizureExpiration, signatureOne, signatureTwo, to, isNotPos) {
-    const secretHashA2 = isNotPos == '0' ? secretParamA2 : sha256(secretParamA2)
-    const secretHashB2 = isNotPos == '1' ? secretParamB2 : sha256(secretParamB2)
-    const secretHashC2 = isNotPos == '2' ? secretParamC2 : sha256(secretParamC2)
+  async multisigSend (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration, signatureOne, signatureTwo, to) {
+    const bidderPubKeyHash = hash160(bidderPubKey)
 
-    const secretA2 = isNotPos == '0' ? '00' : secretParamA2
-    const secretB2 = isNotPos == '1' ? '00' : secretParamB2
-    const secretC2 = isNotPos == '2' ? '00' : secretParamC2
+    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
+    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
 
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration)
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
-
-    const refundableResult = await this._multisigSend(refundableTxHash, refundableScript, secretA2, secretB2, secretC2, loanExpiration, signatureOne.refundableSignature, signatureTwo.refundableSignature, to)
-    const seizableResult = await this._multisigSend(seizableTxHash, seizableScript, secretA2, secretB2, secretC2, loanExpiration, signatureOne.seizableSignature, signatureTwo.seizableSignature, to)
+    debugger
+    const refundableResult = await this._multisigSend(refundableTxHash, refundableScript, loanExpiration, signatureOne.refundableSignature, signatureTwo.refundableSignature, to)
+    const seizableResult = await this._multisigSend(seizableTxHash, seizableScript, loanExpiration, signatureOne.seizableSignature, signatureTwo.seizableSignature, to)
 
     return { refundableResult, seizableResult }
   }
@@ -304,8 +305,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return lockSeizableTransaction
   }
 
-  async _refund (initiationTxHash, script, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, borrowerSecretParam, bidderSecretParam, loanExpiration, biddingExpiration, seizureExpiration, seizable, period) {
-    let secret, lockTime, to
+  async _refund (initiationTxHash, script, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, borrowerSecretParam, bidderSecretParam, loanExpiration, biddingExpiration, seizureExpiration, seizable, period) {
+    let secret, lockTime
     let requiresSecret = false
     if (period === 'loanPeriod') {
       secret = bidderSecretParam
@@ -324,14 +325,11 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     } else {
       lockTime = seizureExpiration + 100
     }
-    
+
     const lockTimeHex = padHexStart(scriptNumEncode(lockTime).toString('hex'), 8)
 
-    if (period === 'seizurePeriod' && requiresSecret) {
-      to = pubKeyToAddress(lenderPubKey, this._network.name, 'pubKeyHash')
-    } else {
-      to = pubKeyHashToAddress(recipientPubKeyHash, this._network.name, 'pubKeyHash')
-    }
+    const pubKey = (period === 'seizurePeriod' && requiresSecret) ? lenderPubKey : bidderPubKey
+    const to = pubKeyToAddress(pubKey, this._network.name, 'pubKeyHash')
 
     const scriptPubKey = padHexStart(script)
     const p2shAddress = pubKeyToAddress(scriptPubKey, this._network.name, 'scriptHash')
@@ -361,6 +359,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const spendInput = this._spendInput(spend, script)
     const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
     const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
+
+    debugger
 
     return this.getMethod('sendRawTransaction')(rawClaimTx)
   }
@@ -396,7 +396,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return signature[0]
   }
 
-  async _multisigSend (initiationTxHash, script, secretA2, secretB2, secretC2, loanExpiration, signatureOne, signatureTwo, to) {
+  async _multisigSend (initiationTxHash, script, loanExpiration, signatureOne, signatureTwo, to) {
     const lockTime = loanExpiration + 100
     const lockTimeHex = padHexStart(scriptNumEncode(lockTime).toString('hex'), 8)
 
@@ -410,21 +410,20 @@ export default class BitcoinCollateralSwapProvider extends Provider {
 
     const txHashLE = Buffer.from(initiationTxHash, 'hex').reverse().toString('hex') // TX HASH IN LITTLE ENDIAN
 
-    const spend = this._spendMultisig(secretA2, secretB2, secretC2, signatureOne, signatureTwo)
+    const spend = this._spendMultisig(signatureOne, signatureTwo)
     const spendInput = this._spendInput(spend, script)
 
+    debugger
     const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
+    debugger
     const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
+    debugger
 
     return this.getMethod('sendRawTransaction')(rawClaimTx)
   }
 
-  _spendMultisig (secretA2, secretB2, secretC2, signatureOne, signatureTwo) {
+  _spendMultisig (signatureOne, signatureTwo) {
     const ifBranch = ['51', '00']
-
-    const secretA2PushDataOpcode = padHexStart((secretA2.length / 2).toString(16))
-    const secretB2PushDataOpcode = padHexStart((secretB2.length / 2).toString(16))
-    const secretC2PushDataOpcode = padHexStart((secretC2.length / 2).toString(16))
 
     const signatureOneSignatureEncoded = signatureOne + '01'
     const signatureOneSignaturePushDataOpcode = padHexStart((signatureOneSignatureEncoded.length / 2).toString(16))
@@ -437,19 +436,13 @@ export default class BitcoinCollateralSwapProvider extends Provider {
       signatureOneSignatureEncoded,
       signatureTwoSignaturePushDataOpcode,
       signatureTwoSignatureEncoded,
-      secretC2PushDataOpcode,
-      secretC2,
-      secretB2PushDataOpcode,
-      secretB2,
-      secretA2PushDataOpcode,
-      secretA2,
       ...ifBranch
     ]
 
     return bytecode.join('')
   }
 
-  _spend (signature, pubKey, secret1, secret2, requiresSecret, requiresTwoSecrets, period) {
+  _spend (signature, pubKey, secret, requiresSecret, period) {
     var ifBranch
     if (period === 'loanPeriod') {
       ifBranch = ['51']
@@ -463,19 +456,12 @@ export default class BitcoinCollateralSwapProvider extends Provider {
       ifBranch = ['00', '00', '00']
     }
 
-    const encodedSecret1 = requiresSecret
+    const encodedSecret = requiresSecret
       ? [
-        padHexStart((secret1.length / 2).toString(16)), // OP_PUSHDATA({secretLength})
-        secret1
+        padHexStart((secret.length / 2).toString(16)), // OP_PUSHDATA({secretLength})
+        secret
       ]
       : [] // OP_0
-
-    const encodedSecret2 = requiresTwoSecrets
-      ? [
-        padHexStart((secret2.length / 2).toString(16)), // OP_PUSHDATA({secretLength})
-        secret2
-      ]
-      : []
 
     const signatureEncoded = signature + '01'
     const signaturePushDataOpcode = padHexStart((signatureEncoded.length / 2).toString(16))
@@ -486,8 +472,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
       signatureEncoded,
       pubKeyPushDataOpcode,
       pubKey,
-      ...encodedSecret2,
-      ...encodedSecret1,
+      ...encodedSecret,
       ...ifBranch
     ]
 
@@ -540,8 +525,11 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   generateRawTx (initiationTx, voutIndex, address, input, locktime) {
+    debugger
     const output = initiationTx.outputs[voutIndex]
+    debugger
     const value = parseInt(reverseBuffer(output.amount).toString('hex'), 16)
+    debugger
     const fee = calculateFee(2, 2, 7)
     const amount = value - fee
     const amountLE = Buffer.from(padHexStart(amount.toString(16), 16), 'hex').reverse().toString('hex') // amount in little endian
