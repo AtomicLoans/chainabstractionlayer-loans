@@ -3,25 +3,69 @@ import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import MetaMaskConnector from 'node-metamask'
 import { Client, Provider, providers, crypto } from '@liquality/bundle'
+import { LoanClient, providers as lproviders } from '../../packages/loan-bundle/lib'
 import { sleep } from '@liquality/utils'
 import { findLast } from 'lodash'
 import config from './config'
 
 chai.use(chaiAsPromised)
 
+const metaMaskConnector = new MetaMaskConnector({ port: config.ethereum.metaMaskConnector.port })
+
 const bitcoinNetworks = providers.bitcoin.networks
 const bitcoinWithLedger = new Client()
+const bitcoinLoanWithLedger = new LoanClient(bitcoinWithLedger)
+bitcoinWithLedger.loan = bitcoinLoanWithLedger
 bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
 bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinLedgerProvider({ network: bitcoinNetworks[config.bitcoin.network], segwit: false }))
 bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }))
+bitcoinWithLedger.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralAgentProvider({ network: bitcoinNetworks[config.bitcoin.network] }))
 
 const bitcoinWithNode = new Client()
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinBitcoinJsLibSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }))
 
+const ethereumNetworks = providers.ethereum.networks
+const ethereumWithMetaMask = new Client()
+ethereumWithMetaMask.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+ethereumWithMetaMask.addProvider(new providers.ethereum.EthereumMetaMaskProvider(metaMaskConnector.getProvider(), ethereumNetworks[config.ethereum.network]))
+ethereumWithMetaMask.addProvider(new providers.ethereum.EthereumSwapProvider())
+
+const ethereumWithNode = new Client()
+ethereumWithNode.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+ethereumWithNode.addProvider(new providers.ethereum.EthereumSwapProvider())
+
+const ethereumWithLedger = new Client()
+ethereumWithLedger.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+ethereumWithLedger.addProvider(new providers.ethereum.EthereumLedgerProvider())
+ethereumWithLedger.addProvider(new providers.ethereum.EthereumSwapProvider())
+
+const erc20WithMetaMask = new Client()
+erc20WithMetaMask.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+erc20WithMetaMask.addProvider(new providers.ethereum.EthereumMetaMaskProvider(metaMaskConnector.getProvider(), ethereumNetworks[config.ethereum.network]))
+erc20WithMetaMask.addProvider(new providers.ethereum.EthereumErc20Provider('We dont have an addres yet'))
+erc20WithMetaMask.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
+
+const erc20WithNode = new Client()
+erc20WithNode.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+erc20WithNode.addProvider(new providers.ethereum.EthereumErc20Provider('We dont have an addres yet'))
+erc20WithNode.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
+
+const erc20WithLedger = new Client()
+erc20WithLedger.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+erc20WithLedger.addProvider(new providers.ethereum.EthereumLedgerProvider())
+erc20WithLedger.addProvider(new providers.ethereum.EthereumErc20Provider('We dont have an addres yet'))
+erc20WithLedger.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
+
 const chains = {
   bitcoinWithLedger: { id: 'Bitcoin Ledger', name: 'bitcoin', client: bitcoinWithLedger },
-  bitcoinWithNode: { id: 'Bitcoin Node', name: 'bitcoin', client: bitcoinWithNode }
+  bitcoinWithNode: { id: 'Bitcoin Node', name: 'bitcoin', client: bitcoinWithNode },
+  ethereumWithMetaMask: { id: 'Ethereum MetaMask', name: 'ethereum', client: ethereumWithMetaMask },
+  ethereumWithNode: { id: 'Ethereum Node', name: 'ethereum', client: ethereumWithNode },
+  ethereumWithLedger: { id: 'Ethereum Ledger', name: 'ethereum', client: ethereumWithLedger },
+  erc20WithMetaMask: { id: 'ERC20 MetaMask', name: 'ethereum', client: erc20WithMetaMask },
+  erc20WithNode: { id: 'ERC20 Node', name: 'ethereum', client: erc20WithNode },
+  erc20WithLedger: { id: 'Erc20 Ledger', name: 'ethereum', client: erc20WithLedger }
 }
 
 async function getSwapParams (chain) {

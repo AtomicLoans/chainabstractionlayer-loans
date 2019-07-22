@@ -1,7 +1,7 @@
 export default {
   bitcoin: {
     rpc: {
-      host: 'http://localhost:18332',
+      host: 'http://localhost:48332',
       username: 'bitcoin',
       password: 'local321'
     },

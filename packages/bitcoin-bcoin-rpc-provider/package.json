@@ -1,8 +1,8 @@
 {
-  "name": "@atomicloans/bitcoin-collateral-swap-provider",
-  "umdName": "BitcoinCollateralSwapProvider",
+  "name": "@atomicloans/bitcoin-bcoin-rpc-provider",
+  "umdName": "BitcoinBcoinRpcProvider",
   "umdExport": "default",
-  "version": "0.2.46",
+  "version": "0.2.44",
   "description": "",
   "module": "lib/index.js",
   "main": "dist/index.cjs.js",
@@ -15,17 +15,16 @@
     "build:browser": "webpack --config ../../webpack/webpack.browser.config.js",
     "build": "webpack --config ../../webpack/webpack.config.js"
   },
-  "author": "Atomic Loans <info@atomicloans.io>",
+  "author": "AtomicLoans <info@atomicloans.io>",
   "license": "MIT",
   "dependencies": {
-    "@atomicloans/provider": "^0.2.43",
+    "@atomicloans/provider": "^0.2.44",
     "@babel/runtime": "^7.4.3",
     "@liquality/bitcoin-networks": "^0.2.11",
+    "@liquality/bitcoin-rpc-provider": "^0.2.11",
     "@liquality/bitcoin-utils": "^0.2.11",
     "@liquality/crypto": "^0.2.11",
-    "@liquality/provider": "^0.2.11",
-    "@liquality/utils": "^0.2.11",
-    "bignumber.js": "^8.1.1"
+    "@liquality/utils": "^0.2.11"
   },
   "engines": {
     "node": "~8.12.0"
@@ -41,5 +40,5 @@
   "publishConfig": {
     "access": "public"
   },
-  "gitHead": "1855d9ec369c8c577f74eb04e310a7c00b9eaa6c"
+  "gitHead": "696c4e8c1f5e86724207817bff97d90711fa1f40"
 }

@@ -149,7 +149,7 @@ export default class BitcoinCollateralAgentProvider extends Provider {
         'a1', // OP_LESSTHANOREQUAL
         '69', // OP_VERIFY
         'a8', // OP_SHA256
-        '20', secretHashB1, // OP_PUSHDATA(32) {secretHashB2}
+        '20', secretHashB1, // OP_PUSHDATA(32) {secretHashB1}
         '87', // OP_EQUAL
         '7c', // OP_SWAP
         '82', // OP_SIZE
@@ -158,7 +158,7 @@ export default class BitcoinCollateralAgentProvider extends Provider {
         'a1', // OP_LESSTHANOREQUAL
         '69', // OP_VERIFY
         'a8', // OP_SHA256
-        '20', secretHashC1, // OP_PUSHDATA(32) {secretHashC2}
+        '20', secretHashC1, // OP_PUSHDATA(32) {secretHashC1}
         '87', // OP_EQUAL
         '93', // OP_ADD
         '51', // PUSH #1

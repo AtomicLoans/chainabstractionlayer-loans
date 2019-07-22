@@ -5,8 +5,10 @@
     "@babel/core": "^7.4.3",
     "@babel/plugin-transform-runtime": "^7.4.4",
     "@babel/polyfill": "^7.4.4",
-    "@babel/preset-env": "^7.4.5",
+    "@babel/preset-env": "^7.5.5",
     "@babel/register": "^7.4.0",
+    "@liquality/bundle": "^0.2.11",
+    "@liquality/utils": "^0.2.11",
     "babel-loader": "^8.0.5",
     "babel-plugin-istanbul": "^5.1.2",
     "babel-plugin-lodash": "^3.3.4",
@@ -55,7 +57,7 @@
     "lint": "standard $npm_package_options_standard",
     "bootstrap": "lerna bootstrap --force-local",
     "test": "cross-env NODE_ENV=test nyc mocha packages/*/test/unit $npm_package_options_mocha",
-    "test:swap": "cross-env NODE_ENV=test nyc mocha test/integration/swap $npm_package_options_mocha",
+    "test:tx": "cross-env NODE_ENV=test nyc mocha test/integration/tx $npm_package_options_mocha",
     "watch": "cross-env WEBPACK_WATCH=true lerna run build --parallel",
     "build:dev:node": "lerna run build:node --stream",
     "build:dev:browser": "lerna run build:browser --stream",
@@ -99,5 +101,6 @@
     "lint",
     "build",
     "test"
-  ]
+  ],
+  "dependencies": {}
 }
