@@ -1,0 +1,15 @@
+{
+  "groups": {
+    "default": {
+      "packages": [
+        "package.json",
+        "packages/bitcoin-collateral-agent-provider/package.json",
+        "packages/bitcoin-collateral-provider/package.json",
+        "packages/bitcoin-collateral-swap-provider/package.json",
+        "packages/loan-bundle/package.json",
+        "packages/loan-client/package.json",
+        "packages/provider/package.json"
+      ]
+    }
+  }
+}

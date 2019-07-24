@@ -19,7 +19,7 @@ Query different blockchains with account management using a single and simple in
 |[@atomicloans/bitcoin-collateral-swap-provider](./packages/bitcoin-collateral-swap-provider)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-swap-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-swap-provider)|
 |[@atomicloans/loan-bundle](./packages/loan-bundle)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/loan-bundle.svg)](https://npmjs.com/package/@atomicloans/loan-bundle)|
 |[@atomicloans/loan-client](./packages/loan-client)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/loan-client.svg)](https://npmjs.com/package/@atomicloans/loan-client)|
-|[@atomicloans/provider](./packages/provider)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/provider.svg)](https://npmjs.com/package/@atomicloans/provider)|
+|[@atomicloans/provider](./packages/provider)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/provider.svg)](https://npmjs.com/package/@atomicloans/provider) [![Greenkeeper badge](https://badges.greenkeeper.io/AtomicLoans/chainabstractionlayer-loans.svg)](https://greenkeeper.io/)|
 
 ## Usage
 
