@@ -5,6 +5,7 @@
 [![Standard Code Style](https://img.shields.io/badge/codestyle-standard-brightgreen.svg)](https://github.com/standard/standard)
 [![MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](./LICENSE.md)
 [![Telegram](https://img.shields.io/badge/chat-on%20telegram-blue.svg)](https://t.me/Atomic_Loans)
+[![Greenkeeper badge](https://badges.greenkeeper.io/AtomicLoans/chainabstractionlayer-loans.svg)](https://greenkeeper.io/)|
 
 > :warning: This project is under heavy development. Expect bugs & breaking changes.
 
@@ -14,12 +15,12 @@ Query different blockchains with account management using a single and simple in
 
 |Package|Version|
 |---|---|
-|[@atomicloans/bitcoin-collateral-agent-provider](./packages/bitcoin-collateral-agent-provider)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-agent-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-agent-provider)|
-|[@atomicloans/bitcoin-collateral-provider](./packages/bitcoin-collateral-provider)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-provider)|
-|[@atomicloans/bitcoin-collateral-swap-provider](./packages/bitcoin-collateral-swap-provider)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-swap-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-swap-provider)|
-|[@atomicloans/loan-bundle](./packages/loan-bundle)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/loan-bundle.svg)](https://npmjs.com/package/@atomicloans/loan-bundle)|
-|[@atomicloans/loan-client](./packages/loan-client)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/loan-client.svg)](https://npmjs.com/package/@atomicloans/loan-client)|
-|[@atomicloans/provider](./packages/provider)|[![ChainAbstractionLayer](https://img.shields.io/npm/v/@atomicloans/provider.svg)](https://npmjs.com/package/@atomicloans/provider) [![Greenkeeper badge](https://badges.greenkeeper.io/AtomicLoans/chainabstractionlayer-loans.svg)](https://greenkeeper.io/)|
+|[@atomicloans/bitcoin-collateral-agent-provider](./packages/bitcoin-collateral-agent-provider)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-agent-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-agent-provider)|
+|[@atomicloans/bitcoin-collateral-provider](./packages/bitcoin-collateral-provider)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-provider)|
+|[@atomicloans/bitcoin-collateral-swap-provider](./packages/bitcoin-collateral-swap-provider)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-swap-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-swap-provider)|
+|[@atomicloans/loan-bundle](./packages/loan-bundle)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/loan-bundle.svg)](https://npmjs.com/package/@atomicloans/loan-bundle)|
+|[@atomicloans/loan-client](./packages/loan-client)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/loan-client.svg)](https://npmjs.com/package/@atomicloans/loan-client)|
+|[@atomicloans/provider](./packages/provider)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/provider.svg)](https://npmjs.com/package/@atomicloans/provider)
 
 ## Usage
 
