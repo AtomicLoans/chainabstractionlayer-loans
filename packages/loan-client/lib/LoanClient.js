@@ -2,7 +2,6 @@ import { find, findLast, findLastIndex, isFunction } from 'lodash'
 import debug from 'debug'
 
 import Collateral from './Collateral'
-import CollateralAgent from './CollateralAgent'
 import CollateralSwap from './CollateralSwap'
 
 import {
@@ -33,7 +32,6 @@ export default class LoanClient {
     this.version = version
 
     this._collateral = new Collateral(this)
-    this._collateralAgent = new CollateralAgent(this)
     this._collateralSwap = new CollateralSwap(this)
   }
 
@@ -121,10 +119,6 @@ export default class LoanClient {
 
   get collateral () {
     return this._collateral
-  }
-
-  get collateralAgent () {
-    return this._collateralAgent
   }
 
   get collateralSwap () {
