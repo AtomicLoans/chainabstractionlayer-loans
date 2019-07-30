@@ -24,7 +24,8 @@
     "@liquality/bitcoin-utils": "^0.2.11",
     "@liquality/crypto": "^0.2.11",
     "@liquality/provider": "^0.2.11",
-    "@liquality/utils": "^0.2.11"
+    "@liquality/utils": "^0.2.11",
+    "bitcoinjs-lib": "^5.1.2"
   },
   "engines": {
     "node": "~8.12.0"
@@ -40,5 +41,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "gitHead": "696c4e8c1f5e86724207817bff97d90711fa1f40"
+  "gitHead": "696c4e8c1f5e86724207817bff97d90711fa1f40",
+  "devDependencies": {
+    "webpack-cli": "^3.3.6"
+  }
 }

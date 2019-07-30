@@ -1,27 +1,129 @@
 /* eslint-env mocha */
+import * as bitcoin from 'bitcoinjs-lib'
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import MetaMaskConnector from 'node-metamask'
-import { Client, Provider, providers, crypto } from '@liquality/bundle'
+import { Client, Provider, providers, crypto } from '@mblackmblack/bundle'
+import { LoanClient, providers as lproviders } from '../../packages/loan-bundle/lib'
 import { sleep } from '@liquality/utils'
+import { sha256 } from '@liquality/crypto'
 import { findLast } from 'lodash'
 import config from './config'
 
 chai.use(chaiAsPromised)
 
+const metaMaskConnector = new MetaMaskConnector({ port: config.ethereum.metaMaskConnector.port })
+
 const bitcoinNetworks = providers.bitcoin.networks
 const bitcoinWithLedger = new Client()
 bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
 bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinLedgerProvider({ network: bitcoinNetworks[config.bitcoin.network], segwit: false }))
-bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }))
 
 const bitcoinWithNode = new Client()
-bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
-bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinBitcoinJsLibSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }))
+const bitcoinLoanWithNode = new LoanClient(bitcoinWithNode)
+bitcoinWithNode.loan = bitcoinLoanWithNode
+bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
+bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh_p2wsh', address: 'p2wpkh'}))
+
+const ethereumNetworks = providers.ethereum.networks
+const ethereumWithMetaMask = new Client()
+ethereumWithMetaMask.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+ethereumWithMetaMask.addProvider(new providers.ethereum.EthereumMetaMaskProvider(metaMaskConnector.getProvider(), ethereumNetworks[config.ethereum.network]))
+ethereumWithMetaMask.addProvider(new providers.ethereum.EthereumSwapProvider())
+
+const ethereumWithNode = new Client()
+ethereumWithNode.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+ethereumWithNode.addProvider(new providers.ethereum.EthereumSwapProvider())
+
+const ethereumWithLedger = new Client()
+ethereumWithLedger.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+ethereumWithLedger.addProvider(new providers.ethereum.EthereumLedgerProvider())
+ethereumWithLedger.addProvider(new providers.ethereum.EthereumSwapProvider())
+
+const erc20WithMetaMask = new Client()
+erc20WithMetaMask.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+erc20WithMetaMask.addProvider(new providers.ethereum.EthereumMetaMaskProvider(metaMaskConnector.getProvider(), ethereumNetworks[config.ethereum.network]))
+erc20WithMetaMask.addProvider(new providers.ethereum.EthereumErc20Provider('We dont have an addres yet'))
+erc20WithMetaMask.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
+
+const erc20WithNode = new Client()
+erc20WithNode.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+erc20WithNode.addProvider(new providers.ethereum.EthereumErc20Provider('We dont have an addres yet'))
+erc20WithNode.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
+
+const erc20WithLedger = new Client()
+erc20WithLedger.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
+erc20WithLedger.addProvider(new providers.ethereum.EthereumLedgerProvider())
+erc20WithLedger.addProvider(new providers.ethereum.EthereumErc20Provider('We dont have an addres yet'))
+erc20WithLedger.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
 
 const chains = {
   bitcoinWithLedger: { id: 'Bitcoin Ledger', name: 'bitcoin', client: bitcoinWithLedger },
-  bitcoinWithNode: { id: 'Bitcoin Node', name: 'bitcoin', client: bitcoinWithNode }
+  bitcoinWithNode: { id: 'Bitcoin Node', name: 'bitcoin', client: bitcoinWithNode },
+  ethereumWithMetaMask: { id: 'Ethereum MetaMask', name: 'ethereum', client: ethereumWithMetaMask },
+  ethereumWithNode: { id: 'Ethereum Node', name: 'ethereum', client: ethereumWithNode },
+  ethereumWithLedger: { id: 'Ethereum Ledger', name: 'ethereum', client: ethereumWithLedger },
+  erc20WithMetaMask: { id: 'ERC20 MetaMask', name: 'ethereum', client: erc20WithMetaMask },
+  erc20WithNode: { id: 'ERC20 Node', name: 'ethereum', client: erc20WithNode },
+  erc20WithLedger: { id: 'Erc20 Ledger', name: 'ethereum', client: erc20WithLedger }
+}
+
+async function getCollateralSecretParams (chain) {
+  const secretA1 = await chain.client.swap.generateSecret('secretA1')
+  const secretA2 = await chain.client.swap.generateSecret('secretA2')
+  const secretB1 = await chain.client.swap.generateSecret('secretB1')
+  const secretB2 = await chain.client.swap.generateSecret('secretB2')
+  const secretC1 = await chain.client.swap.generateSecret('secretC1')
+  const secretC2 = await chain.client.swap.generateSecret('secretC2')
+
+  const secretHashA1 = sha256(secretA1)
+  const secretHashA2 = sha256(secretA2)
+  const secretHashB1 = sha256(secretB1)
+  const secretHashB2 = sha256(secretB2)
+  const secretHashC1 = sha256(secretC1)
+  const secretHashC2 = sha256(secretC2)
+
+  const secrets = { secretA1, secretA2, secretB1, secretB2, secretC1, secretC2 }
+  const secretHashes = { secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2 }
+
+  return {
+    secrets,
+    secretHashes
+  }
+}
+
+async function getCollateralParams (chain) {
+  const refundableValue = config[chain.name].value
+  const seizableValue = config[chain.name].value
+  const values = { refundableValue, seizableValue }
+
+  const borrowerPubKey = await getUnusedPubKey(chain)
+  const lenderPubKey   = await getUnusedPubKey(chain)
+  const agentPubKey    = await getUnusedPubKey(chain)
+  const pubKeys = { borrowerPubKey, lenderPubKey, agentPubKey }
+
+  const { secrets, secretHashes } = await getCollateralSecretParams(chain)
+
+  const loanExpiration     = parseInt(Date.now() / 1000) + parseInt(Math.random() * 1000000)
+  const biddingExpiration  = parseInt(Date.now() / 1000) + parseInt(Math.random() * 2000000)
+  const seizureExpiration = parseInt(Date.now() / 1000) + parseInt(Math.random() * 3000000)
+
+  const expirations = { loanExpiration, biddingExpiration, seizureExpiration }
+
+  return {
+    values,
+    pubKeys,
+    secrets,
+    secretHashes,
+    expirations
+  }
+}
+
+async function getUnusedPubKey (chain) {
+  const address = (await chain.client.getMethod('getNewAddress')('p2sh-segwit')).address
+  let wif = await chain.client.getMethod('dumpPrivKey')(address)
+  const wallet = bitcoin.ECPair.fromWIF(wif, bitcoin.networks.regtest)
+  return wallet.publicKey
 }
 
 async function getSwapParams (chain) {
@@ -132,5 +234,7 @@ export {
   sleep,
   mineBitcoinBlocks,
   deployERC20Token,
-  connectMetaMask
+  connectMetaMask,
+  getUnusedPubKey,
+  getCollateralParams
 }
