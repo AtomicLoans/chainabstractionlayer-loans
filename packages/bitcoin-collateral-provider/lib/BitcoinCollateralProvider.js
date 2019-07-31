@@ -453,8 +453,8 @@ export default class BitcoinCollateralProvider extends Provider {
     // TODO: use node's feePerByte
     const txfee = calculateFee(6, 6, 14)
 
-    txb.addInput(seizableCollateralVout.txid, seizableCollateralVout.n, 0, seizablePrevOutScript)
     txb.addInput(refundableCollateralVout.txid, refundableCollateralVout.n, 0, refundablePrevOutScript)
+    txb.addInput(seizableCollateralVout.txid, seizableCollateralVout.n, 0, seizablePrevOutScript)
     txb.addOutput(addressToString(to), refundableCollateralVout.vSat + seizableCollateralVout.vSat - txfee)
 
     const tx = txb.buildIncomplete()
@@ -462,11 +462,11 @@ export default class BitcoinCollateralProvider extends Provider {
     let refundableSigHash
     let seizableSigHash
     if (needsWitness) {
-      refundableSigHash = tx.hashForWitnessV0(1, refundableCollateralPaymentVariants.p2wsh.redeem.output, refundableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
-      seizableSigHash = tx.hashForWitnessV0(0, seizableCollateralPaymentVariants.p2wsh.redeem.output, seizableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL)
+      refundableSigHash = tx.hashForWitnessV0(0, refundableCollateralPaymentVariants.p2wsh.redeem.output, refundableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
+      seizableSigHash = tx.hashForWitnessV0(1, seizableCollateralPaymentVariants.p2wsh.redeem.output, seizableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL)
     } else {
-      refundableSigHash = tx.hashForSignature(1, refundablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
-      seizableSigHash = tx.hashForSignature(0, seizablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
+      refundableSigHash = tx.hashForSignature(0, refundablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
+      seizableSigHash = tx.hashForSignature(1, seizablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
     }
 
     const refundableSig = (bitcoin.script.signature.encode(wallet.sign(refundableSigHash), bitcoin.Transaction.SIGHASH_ALL)).toString('hex')
@@ -539,8 +539,8 @@ export default class BitcoinCollateralProvider extends Provider {
     // TODO: use node's feePerByte
     const txfee = calculateFee(6, 6, 14)
 
-    txb.addInput(seizableCollateralVout.txid, seizableCollateralVout.n, 0, seizablePrevOutScript)
     txb.addInput(refundableCollateralVout.txid, refundableCollateralVout.n, 0, refundablePrevOutScript)
+    txb.addInput(seizableCollateralVout.txid, seizableCollateralVout.n, 0, seizablePrevOutScript)
     txb.addOutput(addressToString(to), refundableCollateralVout.vSat + seizableCollateralVout.vSat - txfee)
 
     const tx = txb.buildIncomplete()
@@ -548,11 +548,11 @@ export default class BitcoinCollateralProvider extends Provider {
     let refundableSigHash
     let seizableSigHash
     if (needsWitness) {
-      refundableSigHash = tx.hashForWitnessV0(1, refundableCollateralPaymentVariants.p2wsh.redeem.output, refundableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
-      seizableSigHash = tx.hashForWitnessV0(0, seizableCollateralPaymentVariants.p2wsh.redeem.output, seizableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL)
+      refundableSigHash = tx.hashForWitnessV0(0, refundableCollateralPaymentVariants.p2wsh.redeem.output, refundableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
+      seizableSigHash = tx.hashForWitnessV0(1, seizableCollateralPaymentVariants.p2wsh.redeem.output, seizableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL)
     } else {
-      refundableSigHash = tx.hashForSignature(1, refundablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
-      seizableSigHash = tx.hashForSignature(0, seizablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
+      refundableSigHash = tx.hashForSignature(0, refundablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
+      seizableSigHash = tx.hashForSignature(1, seizablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
     }
 
     const refundableCollateralInput = this.getCollateralInput(sigs.refundable, period, secrets, null)
@@ -570,19 +570,19 @@ export default class BitcoinCollateralProvider extends Provider {
       : bitcoin.payments.p2sh(seizablePaymentParams)
 
     if (needsWitness) {
-      tx.setWitness(1, refundablePaymentWithInput.witness)
-      tx.setWitness(0, seizablePaymentWithInput.witness)
+      tx.setWitness(0, refundablePaymentWithInput.witness)
+      tx.setWitness(1, seizablePaymentWithInput.witness)
     }
 
     if (refundablePaymentVariantName === 'p2sh_p2wsh') {
       // Adds the necessary push OP (PUSH34 (00 + witness script hash))
       const refundableInputScript = bitcoin.script.compile([refundableCollateralPaymentVariants.p2sh_p2wsh.redeem.output])
       const seizableInputScript = bitcoin.script.compile([seizableCollateralPaymentVariants.p2sh_p2wsh.redeem.output])
-      tx.setInputScript(1, refundableInputScript)
-      tx.setInputScript(0, seizableInputScript)
+      tx.setInputScript(0, refundableInputScript)
+      tx.setInputScript(1, seizableInputScript)
     } else if (refundablePaymentVariantName === 'p2sh') {
-      tx.setInputScript(1, refundablePaymentWithInput.input)
-      tx.setInputScript(0, seizablePaymentWithInput.input)
+      tx.setInputScript(0, refundablePaymentWithInput.input)
+      tx.setInputScript(1, seizablePaymentWithInput.input)
     }
 
     return this.getMethod('sendRawTransaction')(tx.toHex())
