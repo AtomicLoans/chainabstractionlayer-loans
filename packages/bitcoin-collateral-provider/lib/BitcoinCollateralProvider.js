@@ -263,13 +263,56 @@ export default class BitcoinCollateralProvider extends Provider {
     return this._multisigSend(txHash, sigs, pubKeys, orderedSecrets, secretHashes, expirations, to)
   }
 
+  async seize (txHash, pubKeys, secret, secretHashes, expirations) {
+    const secrets = [secret]
+    return this._refundOne(txHash, pubKeys, secrets, secretHashes, expirations, 'seizurePeriod', true)
+  }
+
+  async reclaimOne (txHash, pubKeys, secretHashes, expirations, seizable) {
+    const secrets = []
+    return this._refundOne(txHash, pubKeys, secrets, secretHashes, expirations, 'refundPeriod', seizable)
+  }
+
+  async reclaimAll (txHash, pubKeys, secretHashes, expirations) {
+    const secrets = []
+    return this._refundAll(txHash, pubKeys, secrets, secretHashes, expirations, 'refundPeriod')
+  }
+
+  async _refundOne (initiationTxHash, pubKeys, secrets, secretHashes, expirations, period, seizable) {
+    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const network = this._bitcoinJsNetwork
+    const pubKey = (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
+    const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
+    const wif = await this.getMethod('dumpPrivKey')(address)
+    const wallet = bitcoin.ECPair.fromWIF(wif, network)
+
+    const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
+    const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
+
+    let col = {} // Collateral Object
+
+    col.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, seizable)
+    col.colPaymentVariants = this.getCollateralPaymentVariants(col.output)
+    this.setPaymentVariants(initiationTx, col)
+    col.colVout.txid = initiationTxHash
+
+    const tx = this.buildColTx(period, col, expirations, address)
+
+    this.setHashForSigOrWit(tx, col, 0)
+    const colSig = bitcoin.script.signature.encode(wallet.sign(col.sigHash), bitcoin.Transaction.SIGHASH_ALL)
+    col.colInput = this.getCollateralInput(colSig, period, secrets, pubKey)
+
+    this.setHashForSigOrWit(tx, col, 0)
+    this.finalizeTx(tx, col, 0)
+
+    return this.getMethod('sendRawTransaction')(tx.toHex())
+  }
+
   async _refundAll (initiationTxHash, pubKeys, secrets, secretHashes, expirations, period) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
     const network = this._bitcoinJsNetwork
-
     const pubKey = (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
-
     const wif = await this.getMethod('dumpPrivKey')(address)
     const wallet = bitcoin.ECPair.fromWIF(wif, network)
 
@@ -399,6 +442,34 @@ export default class BitcoinCollateralProvider extends Provider {
         col.colVout = vout
       }
     }
+  }
+
+  buildColTx (period, col, expirations, to) {
+    const { loanExpiration, biddingExpiration, seizureExpiration } = expirations
+    const network = this._bitcoinJsNetwork
+
+    col.colVout.vSat = col.colVout.value * 1e8
+
+    const txb = new bitcoin.TransactionBuilder(network)
+
+    if (period === 'biddingPeriod') {
+      txb.setLockTime(loanExpiration)
+    } else if (period === 'seizurePeriod') {
+      txb.setLockTime(biddingExpiration)
+    } else if (period === 'refundPeriod') {
+      txb.setLockTime(seizureExpiration)
+    }
+
+    col.prevOutScript = col.paymentVariant.output
+
+    // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
+    // TODO: use node's feePerByte
+    const txfee = calculateFee(6, 6, 14)
+
+    txb.addInput(col.colVout.txid, col.colVout.n, 0, col.prevOutScript)
+    txb.addOutput(addressToString(to), col.colVout.vSat - txfee)
+
+    return txb.buildIncomplete()
   }
 
   buildFullColTx (period, ref, sei, expirations, to) {

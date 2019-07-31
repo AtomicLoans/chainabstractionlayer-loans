@@ -21,15 +21,11 @@ function testCollateral (chain) {
 
     const { refundableTxHash, seizableTxHash } = txId
 
-    // console.log('txId', txId)
-
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
 
     const refundParams = [txId, colParams.pubKeys, colParams.secrets.secretB1, colParams.secretHashes, colParams.expirations]
 
     const txId2 = await chain.client.loan.collateral.refund(...refundParams)
-
-    // console.log('txId2', txId2)
 
     expect(true).to.equal(true)
   })
@@ -51,8 +47,6 @@ function testCollateral (chain) {
     const multisigParams = [txId, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
 
     const sig = await chain.client.loan.collateral.multisigSign(...multisigParams)
-
-    // console.log('sig', sig)
 
     expect(true).to.equal(true)
   })
@@ -85,6 +79,74 @@ function testCollateral (chain) {
     await chain.client.loan.collateral.multisigSend(txId, sigs, colParams.pubKeys, [colParams.secrets.secretA2, colParams.secrets.secretB2], colParams.secretHashes, colParams.expirations, to)
 
     expect(true).to.equal(true)
+  })
+
+  it('should allow seizure', async () => {
+    const colParams = await getCollateralParams(chain)
+
+    const biddingExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    colParams.expirations.biddingExpiration = biddingExpiration
+
+    const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+
+    const txId = await chain.client.loan.collateral.lock(...lockParams)
+
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const seizeParams = [txId, colParams.pubKeys, colParams.secrets.secretA1, colParams.secretHashes, colParams.expirations]
+
+    const txId2 = await chain.client.loan.collateral.seize(...seizeParams)
+  })
+
+  it('should allow reclaiming of seizable collateral', async () => {
+    const colParams = await getCollateralParams(chain)
+
+    const seizureExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    colParams.expirations.seizureExpiration = seizureExpiration
+
+    const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+
+    const txId = await chain.client.loan.collateral.lock(...lockParams)
+
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const reclaimOneParams = [txId, colParams.pubKeys, colParams.secretHashes, colParams.expirations, true]
+
+    const txId2 = await chain.client.loan.collateral.reclaimOne(...reclaimOneParams)
+  })
+
+  it('should allow reclaiming of refundable collateral', async () => {
+    const colParams = await getCollateralParams(chain)
+
+    const seizureExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    colParams.expirations.seizureExpiration = seizureExpiration
+
+    const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+
+    const txId = await chain.client.loan.collateral.lock(...lockParams)
+
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const reclaimOneParams = [txId, colParams.pubKeys, colParams.secretHashes, colParams.expirations, false]
+
+    const txId2 = await chain.client.loan.collateral.reclaimOne(...reclaimOneParams)
+  })
+
+  it('should allow reclaiming of all collateral', async () => {
+    const colParams = await getCollateralParams(chain)
+
+    const seizureExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    colParams.expirations.seizureExpiration = seizureExpiration
+
+    const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+
+    const txId = await chain.client.loan.collateral.lock(...lockParams)
+
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const reclaimParams = [txId, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+
+    const txId2 = await chain.client.loan.collateral.reclaimAll(...reclaimParams)
   })
 }
 

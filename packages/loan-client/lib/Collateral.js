@@ -22,4 +22,16 @@ export default class Collateral {
   async multisigSend (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
     return this.client.getMethod('multisigSend')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
   }
+
+  async seize (txHash, pubKeys, secret, secretHashes, expirations) {
+    return this.client.getMethod('seize')(txHash, pubKeys, secret, secretHashes, expirations)
+  }
+
+  async reclaimOne (txHash, pubKeys, secretHashes, expirations, seizable) {
+    return this.client.getMethod('reclaimOne')(txHash, pubKeys, secretHashes, expirations, seizable)
+  }
+
+  async reclaimAll (txHash, pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('reclaimAll')(txHash, pubKeys, secretHashes, expirations)
+  }
 }
