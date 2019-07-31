@@ -23,7 +23,7 @@ const bitcoinWithNode = new Client()
 const bitcoinLoanWithNode = new LoanClient(bitcoinWithNode)
 bitcoinWithNode.loan = bitcoinLoanWithNode
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
-bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh_p2wsh', address: 'p2wpkh'}))
+bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2pkh'}))
 
 const ethereumNetworks = providers.ethereum.networks
 const ethereumWithMetaMask = new Client()

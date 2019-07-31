@@ -14,4 +14,12 @@ export default class Collateral {
   async refund (txHashes, pubKeys, secret, secretHashes, expirations) {
     return this.client.getMethod('refund')(txHashes, pubKeys, secret, secretHashes, expirations)
   }
+
+  async multisigSign (txHash, pubKeys, secretHashes, expirations, party, to) {
+    return this.client.getMethod('multisigSign')(txHash, pubKeys, secretHashes, expirations, party, to)
+  }
+
+  async multisigSend (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
+    return this.client.getMethod('multisigSend')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
+  }
 }
