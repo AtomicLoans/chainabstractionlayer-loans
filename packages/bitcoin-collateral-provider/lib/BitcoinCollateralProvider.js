@@ -265,8 +265,6 @@ export default class BitcoinCollateralProvider extends Provider {
 
   async _refundAll (initiationTxHash, pubKeys, secrets, secretHashes, expirations, period) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
-    const { loanExpiration, biddingExpiration, seizureExpiration } = expirations
-
     const network = this._bitcoinJsNetwork
 
     const pubKey = (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
@@ -278,109 +276,37 @@ export default class BitcoinCollateralProvider extends Provider {
     const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
     const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
 
+    let ref = {} // Refundable Object
+    let sei = {} // Seizable Object
 
+    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
 
-    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
-    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
+    sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
 
-    const refundableCollateralPaymentVariants = this.getCollateralPaymentVariants(refundableOutput)
-    const seizableCollateralPaymentVariants = this.getCollateralPaymentVariants(seizableOutput)
+    this.setPaymentVariants(initiationTx, ref)
+    this.setPaymentVariants(initiationTx, sei)
 
-    let refundableCollateralVout
-    let refundablePaymentVariantName
-    let refundablePaymentVariant
-    let seizableCollateralVout
-    let seizablePaymentVariantName
-    let seizablePaymentVariant
-    for (const voutIndex in initiationTx._raw.data.vout) {
-      const vout = initiationTx._raw.data.vout[voutIndex]
-      const refundablePaymentVariantEntry = Object.entries(refundableCollateralPaymentVariants).find(([, payment]) => payment.output.toString('hex') === vout.scriptPubKey.hex)
-      if (refundablePaymentVariantEntry) {
-        refundablePaymentVariantName = refundablePaymentVariantEntry[0]
-        refundablePaymentVariant = refundablePaymentVariantEntry[1]
-        refundableCollateralVout = vout
-      }
-      const seizablePaymentVariantEntry = Object.entries(seizableCollateralPaymentVariants).find(([, payment]) => payment.output.toString('hex') === vout.scriptPubKey.hex)
-      if (seizablePaymentVariantEntry) {
-        seizablePaymentVariantName = seizablePaymentVariantEntry[0]
-        seizablePaymentVariant = seizablePaymentVariantEntry[1]
-        seizableCollateralVout = vout
-      }
-    }
+    ref.colVout.txid = initiationTxHash
+    sei.colVout.txid = initiationTxHash
 
-    refundableCollateralVout.txid = initiationTxHash
-    seizableCollateralVout.txid = initiationTxHash
+    const tx = this.buildFullColTx(period, ref, sei, expirations, address)
 
-    refundableCollateralVout.vSat = refundableCollateralVout.value * 1e8
-    seizableCollateralVout.vSat = seizableCollateralVout.value * 1e8
+    this.setHashForSigOrWit(tx, ref, 0)
+    this.setHashForSigOrWit(tx, sei, 1)
 
-    const txb = new bitcoin.TransactionBuilder(network)
+    const refundableSig = bitcoin.script.signature.encode(wallet.sign(ref.sigHash), bitcoin.Transaction.SIGHASH_ALL)
+    const seizableSig = bitcoin.script.signature.encode(wallet.sign(sei.sigHash), bitcoin.Transaction.SIGHASH_ALL)
 
-    if (period === 'biddingPeriod') {
-      txb.setLockTime(loanExpiration)
-    } else if (period === 'seizurePeriod') {
-      txb.setLockTime(biddingExpiration)
-    } else if (period === 'refundPeriod') {
-      txb.setLockTime(seizureExpiration)
-    }
+    ref.colInput = this.getCollateralInput(refundableSig, period, secrets, pubKey)
+    sei.colInput = this.getCollateralInput(seizableSig, period, secrets, pubKey)
 
-    const refundablePrevOutScript = refundablePaymentVariant.output
-    const seizablePrevOutScript = seizablePaymentVariant.output
+    this.setHashForSigOrWit(tx, ref, 0)
+    this.setHashForSigOrWit(tx, sei, 1)
 
-    const needsWitness = refundablePaymentVariantName === 'p2wsh' || refundablePaymentVariantName === 'p2sh_p2wsh'
-
-    // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
-    // TODO: use node's feePerByte
-    const txfee = calculateFee(4, 4, 12)
-
-    txb.addInput(refundableCollateralVout.txid, refundableCollateralVout.n, 0, refundablePrevOutScript)
-    txb.addInput(seizableCollateralVout.txid, seizableCollateralVout.n, 0, seizablePrevOutScript)
-    txb.addOutput(addressToString(address), refundableCollateralVout.vSat + seizableCollateralVout.vSat - txfee)
-
-    const tx = txb.buildIncomplete()
-
-    let refundableSigHash
-    let seizableSigHash
-    if (needsWitness) {
-      refundableSigHash = tx.hashForWitnessV0(0, refundableCollateralPaymentVariants.p2wsh.redeem.output, refundableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
-      seizableSigHash = tx.hashForWitnessV0(1, seizableCollateralPaymentVariants.p2wsh.redeem.output, seizableCollateralVout.vSat, bitcoin.Transaction.SIGHASH_ALL)
-    } else {
-      refundableSigHash = tx.hashForSignature(0, refundablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
-      seizableSigHash = tx.hashForSignature(1, seizablePaymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
-    }
-
-    const refundableSig = bitcoin.script.signature.encode(wallet.sign(refundableSigHash), bitcoin.Transaction.SIGHASH_ALL)
-    const seizableSig = bitcoin.script.signature.encode(wallet.sign(seizableSigHash), bitcoin.Transaction.SIGHASH_ALL)
-
-    const refundableCollateralInput = this.getCollateralInput(refundableSig, period, secrets, pubKey)
-    const seizableCollateralInput = this.getCollateralInput(seizableSig, period, secrets, pubKey)
-
-    const refundablePaymentParams = { redeem: { output: refundableOutput, input: refundableCollateralInput, network }, network }
-    const seizablePaymentParams = { redeem: { output: seizableOutput, input: seizableCollateralInput, network }, network }
-
-    const refundablePaymentWithInput = needsWitness
-      ? bitcoin.payments.p2wsh(refundablePaymentParams)
-      : bitcoin.payments.p2sh(refundablePaymentParams)
-
-    const seizablePaymentWithInput = needsWitness
-      ? bitcoin.payments.p2wsh(seizablePaymentParams)
-      : bitcoin.payments.p2sh(seizablePaymentParams)
-
-    if (needsWitness) {
-      tx.setWitness(0, refundablePaymentWithInput.witness)
-      tx.setWitness(1, seizablePaymentWithInput.witness)
-    }
-
-    if (refundablePaymentVariantName === 'p2sh_p2wsh') {
-      // Adds the necessary push OP (PUSH34 (00 + witness script hash))
-      const refundableInputScript = bitcoin.script.compile([refundableCollateralPaymentVariants.p2sh_p2wsh.redeem.output])
-      const seizableInputScript = bitcoin.script.compile([seizableCollateralPaymentVariants.p2sh_p2wsh.redeem.output])
-      tx.setInputScript(0, refundableInputScript)
-      tx.setInputScript(1, seizableInputScript)
-    } else if (refundablePaymentVariantName === 'p2sh') {
-      tx.setInputScript(0, refundablePaymentWithInput.input)
-      tx.setInputScript(1, seizablePaymentWithInput.input)
-    }
+    this.finalizeTx(tx, ref, 0)
+    this.finalizeTx(tx, sei, 1)
 
     return this.getMethod('sendRawTransaction')(tx.toHex())
   }
@@ -388,9 +314,7 @@ export default class BitcoinCollateralProvider extends Provider {
   async _multisigSign (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
     const { loanExpiration, biddingExpiration, seizureExpiration } = expirations
-
     const period = 'biddingPeriod'
-
     const network = this._bitcoinJsNetwork
 
     const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : agentPubKey
@@ -411,27 +335,8 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
     sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
 
-    let refundableCollateralVout
-    let refundablePaymentVariantName
-    let refundablePaymentVariant
-    let seizableCollateralVout
-    let seizablePaymentVariantName
-    let seizablePaymentVariant
-    for (const voutIndex in initiationTx._raw.data.vout) {
-      const vout = initiationTx._raw.data.vout[voutIndex]
-      const refundablePaymentVariantEntry = Object.entries(ref.colPaymentVariants).find(([, payment]) => payment.output.toString('hex') === vout.scriptPubKey.hex)
-      if (refundablePaymentVariantEntry) {
-        ref.paymentVariantName = refundablePaymentVariantEntry[0]
-        ref.paymentVariant = refundablePaymentVariantEntry[1]
-        ref.colVout = vout
-      }
-      const seizablePaymentVariantEntry = Object.entries(sei.colPaymentVariants).find(([, payment]) => payment.output.toString('hex') === vout.scriptPubKey.hex)
-      if (seizablePaymentVariantEntry) {
-        sei.paymentVariantName = seizablePaymentVariantEntry[0]
-        sei.paymentVariant = seizablePaymentVariantEntry[1]
-        sei.colVout = vout
-      }
-    }
+    this.setPaymentVariants(initiationTx, ref)
+    this.setPaymentVariants(initiationTx, sei)
 
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
