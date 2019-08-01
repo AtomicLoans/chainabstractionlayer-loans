@@ -1,5 +1,4 @@
 import * as bitcoin from 'bitcoinjs-lib'
-import BigNumber from 'bignumber.js'
 import Provider from '@atomicloans/provider'
 import { addressToString, sleep } from '@liquality/utils'
 import networks from '@liquality/bitcoin-networks'
@@ -105,27 +104,36 @@ export default class BitcoinCollateralProvider extends Provider {
         OPS.OP_IF,
           OPS.OP_SIZE,
           bitcoin.script.number.encode(32),
-          OPS.OP_LESSTHANOREQUAL,
-          OPS.OP_VERIFY,
+          OPS.OP_EQUAL,
+          OPS.OP_SWAP,
           OPS.OP_SHA256,
           Buffer.from(secretHashA2, 'hex'),
+          OPS.OP_EQUAL,
+          OPS.OP_ADD,
+          OPS.OP_2,
           OPS.OP_EQUAL,
           OPS.OP_SWAP,
           OPS.OP_SIZE,
           bitcoin.script.number.encode(32),
-          OPS.OP_LESSTHANOREQUAL,
-          OPS.OP_VERIFY,
+          OPS.OP_EQUAL,
+          OPS.OP_SWAP,
           OPS.OP_SHA256,
           Buffer.from(secretHashB2, 'hex'),
+          OPS.OP_EQUAL,
+          OPS.OP_ADD,
+          OPS.OP_2,
           OPS.OP_EQUAL,
           OPS.OP_ADD,
           OPS.OP_SWAP,
           OPS.OP_SIZE,
           bitcoin.script.number.encode(32),
-          OPS.OP_LESSTHANOREQUAL,
-          OPS.OP_VERIFY,
+          OPS.OP_EQUAL,
+          OPS.OP_SWAP,
           OPS.OP_SHA256,
           Buffer.from(secretHashC2, 'hex'),
+          OPS.OP_EQUAL,
+          OPS.OP_ADD,
+          OPS.OP_2,
           OPS.OP_EQUAL,
           OPS.OP_ADD,
           OPS.OP_2,
@@ -178,7 +186,7 @@ export default class BitcoinCollateralProvider extends Provider {
     if (period === 'loanPeriod') {
       ifBranch = [ OPS.OP_TRUE ]
     } else if (period === 'biddingPeriod') {
-      ifBranch = [ OPS.OP_TRUE, OPS.OP_0 ]
+      ifBranch = [ OPS.OP_TRUE, OPS.OP_FALSE ]
     } else if (period === 'seizurePeriod') {
       ifBranch = [ OPS.OP_TRUE, OPS.OP_FALSE, OPS.OP_FALSE ]
     } else if (period === 'refundPeriod') {
@@ -187,7 +195,7 @@ export default class BitcoinCollateralProvider extends Provider {
 
     let secretParams = []
     for (let secret of secrets) {
-      secretParams.unshift(secret === null ? Buffer.from('00', 'hex') : Buffer.from(secret, 'hex'))
+      secretParams.unshift(secret === null ? OPS.OP_FALSE : Buffer.from(secret, 'hex'))
     }
 
     const pubKeyParam = pubKey === null ? [] : [pubKey]
@@ -420,11 +428,11 @@ export default class BitcoinCollateralProvider extends Provider {
 
     const tx = this.buildFullColTx(period, ref, sei, expirations, to)
 
-    ref.colInput = this.getCollateralInput(sigs.refundable, period, secrets, null)
-    sei.colInput = this.getCollateralInput(sigs.seizable, period, secrets, null)
-
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
+
+    ref.colInput = this.getCollateralInput(sigs.refundable, period, secrets, null)
+    sei.colInput = this.getCollateralInput(sigs.seizable, period, secrets, null)
 
     this.finalizeTx(tx, ref, 0)
     this.finalizeTx(tx, sei, 1)
