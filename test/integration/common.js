@@ -23,7 +23,7 @@ const bitcoinWithNode = new Client()
 const bitcoinLoanWithNode = new LoanClient(bitcoinWithNode)
 bitcoinWithNode.loan = bitcoinLoanWithNode
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
-bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2wsh', address: 'p2wpkh'}))
+bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 
 const ethereumNetworks = providers.ethereum.networks
 const ethereumWithMetaMask = new Client()
@@ -97,9 +97,19 @@ async function getCollateralParams (chain) {
   const seizableValue = config[chain.name].value
   const values = { refundableValue, seizableValue }
 
-  const borrowerPubKey = await getUnusedPubKey(chain)
-  const lenderPubKey   = await getUnusedPubKey(chain)
-  const agentPubKey    = await getUnusedPubKey(chain)
+  const borrowerPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
+  const borrowerAddress = borrowerPubKeyAndAddress.address
+  const borrowerPubKey = borrowerPubKeyAndAddress.pubKey
+
+  const lenderPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
+  const lenderAddress = lenderPubKeyAndAddress.address
+  const lenderPubKey = lenderPubKeyAndAddress.pubKey
+
+  const agentPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
+  const agentAddress = agentPubKeyAndAddress.address
+  const agentPubKey = agentPubKeyAndAddress.pubKey
+
+  const addresses = { borrowerAddress, lenderAddress, agentAddress }
   const pubKeys = { borrowerPubKey, lenderPubKey, agentPubKey }
 
   const { secrets, secretHashes } = await getCollateralSecretParams(chain)
@@ -112,6 +122,7 @@ async function getCollateralParams (chain) {
 
   return {
     values,
+    addresses,
     pubKeys,
     secrets,
     secretHashes,
@@ -119,11 +130,11 @@ async function getCollateralParams (chain) {
   }
 }
 
-async function getUnusedPubKey (chain) {
+async function getUnusedPubKeyAndAddress (chain) {
   const address = (await chain.client.getMethod('getNewAddress')('p2sh-segwit')).address
   let wif = await chain.client.getMethod('dumpPrivKey')(address)
   const wallet = bitcoin.ECPair.fromWIF(wif, bitcoin.networks.regtest)
-  return wallet.publicKey
+  return { address, pubKey: wallet.publicKey }
 }
 
 async function getSwapParams (chain) {
@@ -235,6 +246,6 @@ export {
   mineBitcoinBlocks,
   deployERC20Token,
   connectMetaMask,
-  getUnusedPubKey,
+  getUnusedPubKeyAndAddress,
   getCollateralParams
 }
