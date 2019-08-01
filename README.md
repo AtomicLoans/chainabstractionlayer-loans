@@ -11,6 +11,8 @@
 
 Query different blockchains with account management using a single and simple interface.
 
+This repository was built as an extension to the [ChainAbstractionLayer](https://github.com/liquality/chainabstractionlayer) maintained by the core contributors of [Liquality](https://liquality.io).
+
 ## Packages
 
 |Package|Version|
