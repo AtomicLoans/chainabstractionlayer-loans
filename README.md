@@ -11,7 +11,9 @@
 
 Query different blockchains with account management using a single and simple interface.
 
-This repository was built as an extension to the [ChainAbstractionLayer](https://github.com/liquality/chainabstractionlayer) maintained by the core contributors of [Liquality](https://liquality.io).
+## Dependencies
+
+This repository was built as an extension to the [ChainAbstractionLayer](https://github.com/liquality/chainabstractionlayer) maintained by the core contributors of [Liquality](https://liquality.io). It is necessary to include the `Client` and `providers` from the `@liquality` npm packages in order to use providers such as the `BitcoinCollateralProvider`. 
 
 ## Packages
 
