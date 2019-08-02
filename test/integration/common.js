@@ -25,6 +25,12 @@ bitcoinWithNode.loan = bitcoinLoanWithNode
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
 bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 
+const bitcoinNodeCollateralSwap = new Client()
+const bitcoinLoanNodeCollateralSwap = new LoanClient(bitcoinNodeCollateralSwap)
+bitcoinNodeCollateralSwap.loan = bitcoinLoanNodeCollateralSwap
+bitcoinNodeCollateralSwap.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
+bitcoinNodeCollateralSwap.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
+
 const ethereumNetworks = providers.ethereum.networks
 const ethereumWithMetaMask = new Client()
 ethereumWithMetaMask.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
@@ -60,6 +66,7 @@ erc20WithLedger.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
 const chains = {
   bitcoinWithLedger: { id: 'Bitcoin Ledger', name: 'bitcoin', client: bitcoinWithLedger },
   bitcoinWithNode: { id: 'Bitcoin Node', name: 'bitcoin', client: bitcoinWithNode },
+  bitcoinNodeCollateralSwap: { id: 'Bitcoin Node Collateral Swap', name: 'bitcoin', client: bitcoinNodeCollateralSwap },
   ethereumWithMetaMask: { id: 'Ethereum MetaMask', name: 'ethereum', client: ethereumWithMetaMask },
   ethereumWithNode: { id: 'Ethereum Node', name: 'ethereum', client: ethereumWithNode },
   ethereumWithLedger: { id: 'Ethereum Ledger', name: 'ethereum', client: ethereumWithLedger },
@@ -75,6 +82,7 @@ async function getCollateralSecretParams (chain) {
   const secretB2 = await chain.client.swap.generateSecret('secretB2')
   const secretC1 = await chain.client.swap.generateSecret('secretC1')
   const secretC2 = await chain.client.swap.generateSecret('secretC2')
+  const secretD1 = await chain.client.swap.generateSecret('secretD1')
 
   const secretHashA1 = sha256(secretA1)
   const secretHashA2 = sha256(secretA2)
@@ -82,9 +90,10 @@ async function getCollateralSecretParams (chain) {
   const secretHashB2 = sha256(secretB2)
   const secretHashC1 = sha256(secretC1)
   const secretHashC2 = sha256(secretC2)
+  const secretHashD1 = sha256(secretD1)
 
-  const secrets = { secretA1, secretA2, secretB1, secretB2, secretC1, secretC2 }
-  const secretHashes = { secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2 }
+  const secrets = { secretA1, secretA2, secretB1, secretB2, secretC1, secretC2, secretD1 }
+  const secretHashes = { secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, secretHashD1 }
 
   return {
     secrets,
@@ -109,16 +118,21 @@ async function getCollateralParams (chain) {
   const agentAddress = agentPubKeyAndAddress.address
   const agentPubKey = agentPubKeyAndAddress.pubKey
 
-  const addresses = { borrowerAddress, lenderAddress, agentAddress }
-  const pubKeys = { borrowerPubKey, lenderPubKey, agentPubKey }
+  const bidderPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
+  const bidderAddress = bidderPubKeyAndAddress.address
+  const bidderPubKey = bidderPubKeyAndAddress.pubKey
+
+  const addresses = { borrowerAddress, lenderAddress, agentAddress, bidderAddress }
+  const pubKeys = { borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey }
 
   const { secrets, secretHashes } = await getCollateralSecretParams(chain)
 
   const approveExpiration     = parseInt(Date.now() / 1000) + parseInt(Math.random() * 1000000)
+  const swapExpiration     = parseInt(Date.now() / 1000) + parseInt(Math.random() * 1500000)
   const biddingExpiration  = parseInt(Date.now() / 1000) + parseInt(Math.random() * 2000000)
   const seizureExpiration = parseInt(Date.now() / 1000) + parseInt(Math.random() * 3000000)
 
-  const expirations = { approveExpiration, biddingExpiration, seizureExpiration }
+  const expirations = { approveExpiration, swapExpiration, biddingExpiration, seizureExpiration }
 
   return {
     values,
