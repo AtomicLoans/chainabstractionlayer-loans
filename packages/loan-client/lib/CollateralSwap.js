@@ -3,39 +3,35 @@ export default class CollateralSwap {
     this.client = client
   }
 
-  async createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashD1, loanExpiration, biddingExpiration) {
-    return this.client.getMethod('createRefundableScript')(borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
+  getCollateralOutput (pubKeys, secretHashes, expirations, seizable) {
+    return this.client.getMethod('getCollateralOutput')(pubKeys, secretHashes, expirations, seizable)
   }
 
-  async createSeizableScript (borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration) {
-    return this.client.getMethod('createSeizableScript')(borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
+  async lock (values, pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('lock')(values, pubKeys, secretHashes, expirations)
   }
 
-  async lock (refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration) {
-    return this.client.getMethod('lock')(refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
+  async refund (txHashes, pubKeys, secret, secretHashes, expirations) {
+    return this.client.getMethod('refund')(txHashes, pubKeys, secret, secretHashes, expirations)
   }
 
-  async refund (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration) {
-    return this.client.getMethod('refund')(refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, recipientPubKeyHash, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration)
+  async multisigSign (txHash, pubKeys, secretHashes, expirations, party, to) {
+    return this.client.getMethod('multisigSign')(txHash, pubKeys, secretHashes, expirations, party, to)
   }
 
-  async seize (seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    return this.client.getMethod('seize')(seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
+  async multisigSend (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
+    return this.client.getMethod('multisigSend')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
   }
 
-  async refundRefundable (refundableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    return this.client.getMethod('refundRefundable')(refundableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
+  async seize (txHash, pubKeys, secret, secretHashes, expirations) {
+    return this.client.getMethod('seize')(txHash, pubKeys, secret, secretHashes, expirations)
   }
 
-  async refundSeizable (seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    return this.client.getMethod('refundSeizable')(seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
+  async reclaimOne (txHash, pubKeys, secretHashes, expirations, seizable) {
+    return this.client.getMethod('reclaimOne')(txHash, pubKeys, secretHashes, expirations, seizable)
   }
 
-  async multisigSign (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration, isBorrower, to) {
-    return this.client.getMethod('multisigSign')(refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration, isBorrower, to)
-  }
-
-  async multisigSend (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration, signatureOne, signatureTwo, to) {
-    return this.client.getMethod('multisigSend')(refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration, signatureOne, signatureTwo, to)
+  async reclaimAll (txHash, pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('reclaimAll')(txHash, pubKeys, secretHashes, expirations)
   }
 }
