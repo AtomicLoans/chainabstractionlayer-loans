@@ -24,6 +24,7 @@ const bitcoinLoanWithNode = new LoanClient(bitcoinWithNode)
 bitcoinWithNode.loan = bitcoinLoanWithNode
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
 bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
+bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 
 const bitcoinNodeCollateralSwap = new Client()
 const bitcoinLoanNodeCollateralSwap = new LoanClient(bitcoinNodeCollateralSwap)
@@ -78,22 +79,48 @@ const chains = {
 async function getCollateralSecretParams (chain) {
   const secretA1 = await chain.client.swap.generateSecret('secretA1')
   const secretA2 = await chain.client.swap.generateSecret('secretA2')
+  const secretA3 = await chain.client.swap.generateSecret('secretA3')
+  const secretA4 = await chain.client.swap.generateSecret('secretA4')
   const secretB1 = await chain.client.swap.generateSecret('secretB1')
   const secretB2 = await chain.client.swap.generateSecret('secretB2')
+  const secretB3 = await chain.client.swap.generateSecret('secretB3')
+  const secretB4 = await chain.client.swap.generateSecret('secretB4')
   const secretC1 = await chain.client.swap.generateSecret('secretC1')
   const secretC2 = await chain.client.swap.generateSecret('secretC2')
+  const secretC3 = await chain.client.swap.generateSecret('secretC3')
+  const secretC4 = await chain.client.swap.generateSecret('secretC4')
   const secretD1 = await chain.client.swap.generateSecret('secretD1')
+  const secretD2 = await chain.client.swap.generateSecret('secretD2')
+  const secretD3 = await chain.client.swap.generateSecret('secretD3')
 
   const secretHashA1 = sha256(secretA1)
   const secretHashA2 = sha256(secretA2)
+  const secretHashA3 = sha256(secretA3)
+  const secretHashA4 = sha256(secretA4)
   const secretHashB1 = sha256(secretB1)
   const secretHashB2 = sha256(secretB2)
+  const secretHashB3 = sha256(secretB3)
+  const secretHashB4 = sha256(secretB4)
   const secretHashC1 = sha256(secretC1)
   const secretHashC2 = sha256(secretC2)
+  const secretHashC3 = sha256(secretC3)
+  const secretHashC4 = sha256(secretC4)
   const secretHashD1 = sha256(secretD1)
+  const secretHashD2 = sha256(secretD2)
+  const secretHashD3 = sha256(secretD3)
 
-  const secrets = { secretA1, secretA2, secretB1, secretB2, secretC1, secretC2, secretD1 }
-  const secretHashes = { secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, secretHashD1 }
+  const secrets = {
+    secretA1, secretA2, secretA3, secretA4,
+    secretB1, secretB2, secretB3, secretB4,
+    secretC1, secretC2, secretC3, secretC4,
+    secretD1, secretD2, secretD3
+  }
+  const secretHashes = {
+    secretHashA1, secretHashA2, secretHashA3, secretHashA4,
+    secretHashB1, secretHashB2, secretHashB3, secretHashB4,
+    secretHashC1, secretHashC2, secretHashC3, secretHashC4,
+    secretHashD1, secretHashD2, secretHashD3
+  }
 
   return {
     secrets,

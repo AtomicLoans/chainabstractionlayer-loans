@@ -15,7 +15,7 @@ import { version } from '../package.json'
 const OPS = bitcoin.script.OPS
 
 export default class BitcoinCollateralSwapProvider extends Provider {
- constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2sh_p2wsh', address: 'p2sh_p2wpkh' }) {
+  constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2sh_p2wsh', address: 'p2sh_p2wpkh' }) {
     super()
     this._network = chain.network
     if (!['p2wsh', 'p2sh_p2wsh', 'p2sh'].includes(mode.script)) {
@@ -189,7 +189,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return { p2wsh, p2sh_p2wsh, p2sh }
   }
 
-  async lock (values, pubKeys, secretHashes, expirations) {
+  async init (values, pubKeys, secretHashes, expirations) {
     const { refundableValue, seizableValue } = values
 
     const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
@@ -204,7 +204,17 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ])
   }
 
-  async refund(txHash, pubKeys, secrets, secretHashes, expirations) {
+  async getInitAddresses (pubKeys, secretHashes, expirations) {
+    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+
+    const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
+    const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
+
+    return { refundableAddress, seizableAddress }
+  }
+
+  async claim (txHash, pubKeys, secrets, secretHashes, expirations) {
     const { secretHashA1, secretHashB1, secretHashC1, secretHashD1 } = secretHashes
 
     if (secrets.length !== 3) { throw new Error('You should only provide 3 secrets') }
@@ -220,19 +230,19 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return this._refundAll(txHash, pubKeys, orderedSecrets, secretHashes, expirations, 'claimPeriod')
   }
 
-  async multisigSign (txHash, pubKeys, secretHashes, expirations, party, to) {
-    return this._multisigSign(txHash, pubKeys, secretHashes, expirations, party, to)
+  async multisigWrite (txHash, pubKeys, secretHashes, expirations, party, to) {
+    return this._multisigWrite(txHash, pubKeys, secretHashes, expirations, party, to)
   }
 
-  async multisigSend (txHash, sigs, pubKeys, secretHashes, expirations, to) {
-    return this._multisigSend(txHash, sigs, pubKeys, secretHashes, expirations, to)
+  async multisigMove (txHash, sigs, pubKeys, secretHashes, expirations, to) {
+    return this._multisigMove(txHash, sigs, pubKeys, secretHashes, expirations, to)
   }
 
-  async seize (txHash, pubKeys, secretHashes, expirations) {
+  async snatch (txHash, pubKeys, secretHashes, expirations) {
     return this._refundOne(txHash, pubKeys, secretHashes, expirations, 'seizurePeriod', true)
   }
 
-  async reclaimOne (txHash, pubKeys, secretHashes, expirations) {
+  async regain (txHash, pubKeys, secretHashes, expirations) {
     return this._refundOne(txHash, pubKeys, secretHashes, expirations, 'seizurePeriod', false)
   }
 
@@ -312,7 +322,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return this.getMethod('sendRawTransaction')(tx.toHex())
   }
 
-  async _multisigSign (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
+  async _multisigWrite (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
     const { swapExpiration, biddingExpiration, seizureExpiration } = expirations
     const period = 'biddingPeriod'
@@ -353,7 +363,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return { refundableSig, seizableSig }
   }
 
-  async _multisigSend (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
+  async _multisigMove (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
     const period = 'biddingPeriod'
     const network = this._bitcoinJsNetwork

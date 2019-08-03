@@ -78,10 +78,7 @@ function testCollateral (chain) {
   it('should allow multisig signing and sending', async () => {
     const { lockTxHash, colParams } = await lockCollateral(chain, 'approveExpiration')
 
-    const to = await chain.client.getMethod('getNewAddress')('p2sh-segwit')
-
-    const balBefore = await chain.client.getMethod('getBalance')(to)
-    console.log('balBefore')
+    const to = await chain.client.getMethod('getNewAddress')()
 
     const multisigBorrowerParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
     const borrowerSigs = await chain.client.loan.collateral.multisigSign(...multisigBorrowerParams)

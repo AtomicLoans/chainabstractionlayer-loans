@@ -3,35 +3,31 @@ export default class CollateralSwap {
     this.client = client
   }
 
-  getCollateralOutput (pubKeys, secretHashes, expirations, seizable) {
-    return this.client.getMethod('getCollateralOutput')(pubKeys, secretHashes, expirations, seizable)
+  async init (values, pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('init')(values, pubKeys, secretHashes, expirations)
   }
 
-  async lock (values, pubKeys, secretHashes, expirations) {
-    return this.client.getMethod('lock')(values, pubKeys, secretHashes, expirations)
+  async getInitAddresses (pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('getInitAddresses')(pubKeys, secretHashes, expirations)
   }
 
-  async refund (txHashes, pubKeys, secret, secretHashes, expirations) {
-    return this.client.getMethod('refund')(txHashes, pubKeys, secret, secretHashes, expirations)
+  async claim (txHashes, pubKeys, secret, secretHashes, expirations) {
+    return this.client.getMethod('claim')(txHashes, pubKeys, secret, secretHashes, expirations)
   }
 
-  async multisigSign (txHash, pubKeys, secretHashes, expirations, party, to) {
-    return this.client.getMethod('multisigSign')(txHash, pubKeys, secretHashes, expirations, party, to)
+  async multisigWrite (txHash, pubKeys, secretHashes, expirations, party, to) {
+    return this.client.getMethod('multisigWrite')(txHash, pubKeys, secretHashes, expirations, party, to)
   }
 
-  async multisigSend (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
-    return this.client.getMethod('multisigSend')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
+  async multisigMove (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
+    return this.client.getMethod('multisigMove')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
   }
 
-  async seize (txHash, pubKeys, secret, secretHashes, expirations) {
-    return this.client.getMethod('seize')(txHash, pubKeys, secret, secretHashes, expirations)
+  async snatch (txHash, pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('snatch')(txHash, pubKeys, secretHashes, expirations)
   }
 
-  async reclaimOne (txHash, pubKeys, secretHashes, expirations, seizable) {
-    return this.client.getMethod('reclaimOne')(txHash, pubKeys, secretHashes, expirations, seizable)
-  }
-
-  async reclaimAll (txHash, pubKeys, secretHashes, expirations) {
-    return this.client.getMethod('reclaimAll')(txHash, pubKeys, secretHashes, expirations)
+  async regain (txHash, pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('regain')(txHash, pubKeys, secretHashes, expirations)
   }
 }

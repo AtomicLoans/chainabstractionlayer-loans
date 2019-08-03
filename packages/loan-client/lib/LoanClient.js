@@ -113,8 +113,12 @@ export default class LoanClient {
    * @return {function} Returns method from provider instance associated with the requested method
    */
   getMethod (method, requestor) {
-    const provider = this.getProviderForMethod(method, requestor)
-    return provider[method].bind(provider)
+    try {
+      const provider = this.getProviderForMethod(method, requestor)
+      return provider[method].bind(provider)
+    } catch(e) {
+      return this.client.getMethod(method)
+    }
   }
 
   get collateral () {

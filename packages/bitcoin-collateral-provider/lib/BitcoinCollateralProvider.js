@@ -215,12 +215,12 @@ export default class BitcoinCollateralProvider extends Provider {
     return this._refundAll(txHash, pubKeys, secrets, secretHashes, expirations, 'loanPeriod')
   }
 
-  async multisigSign (txHash, pubKeys, secretHashes, expirations, party, to) {
-    return this._multisigSign(txHash, pubKeys, secretHashes, expirations, party, to)
+  async multisigSign (txHash, pubKeys, secretHashes, expirations, party, outputs) {
+    return this._multisigSign(txHash, pubKeys, secretHashes, expirations, party, outputs)
   }
 
-  async multisigSend (txHash, sigs, pubKeys, secretHashes, expirations, to) {
-    return this._multisigSend(txHash, sigs, pubKeys, secretHashes, expirations, to)
+  async multisigSend (txHash, sigs, pubKeys, secretHashes, expirations, outputs) {
+    return this._multisigSend(txHash, sigs, pubKeys, secretHashes, expirations, outputs)
   }
 
   async seize (txHash, pubKeys, secret, secretHashes, expirations) {
@@ -314,7 +314,7 @@ export default class BitcoinCollateralProvider extends Provider {
     return this.getMethod('sendRawTransaction')(tx.toHex())
   }
 
-  async _multisigSign (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
+  async _multisigSign (initiationTxHash, pubKeys, secretHashes, expirations, party, outputs) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
     const { approveExpiration, biddingExpiration, seizureExpiration } = expirations
     const period = 'biddingPeriod'
@@ -344,7 +344,7 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, to)
+    const tx = this.buildFullColTx(period, ref, sei, expirations, outputs)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -355,7 +355,7 @@ export default class BitcoinCollateralProvider extends Provider {
     return { refundableSig, seizableSig }
   }
 
-  async _multisigSend (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
+  async _multisigSend (initiationTxHash, sigs, pubKeys, secretHashes, expirations, outputs) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
     const period = 'biddingPeriod'
     const network = this._bitcoinJsNetwork
@@ -378,7 +378,7 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, to)
+    const tx = this.buildFullColTx(period, ref, sei, expirations, outputs)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -432,7 +432,9 @@ export default class BitcoinCollateralProvider extends Provider {
     return txb.buildIncomplete()
   }
 
-  buildFullColTx (period, ref, sei, expirations, to) {
+  buildFullColTx (period, ref, sei, expirations, outputs) {
+    if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
+
     const { approveExpiration, biddingExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
@@ -458,7 +460,13 @@ export default class BitcoinCollateralProvider extends Provider {
 
     txb.addInput(ref.colVout.txid, ref.colVout.n, 0, ref.prevOutScript)
     txb.addInput(sei.colVout.txid, sei.colVout.n, 0, sei.prevOutScript)
-    txb.addOutput(addressToString(to), ref.colVout.vSat + sei.colVout.vSat - txfee)
+
+    if (outputs.length === 1) {
+      txb.addOutput(addressToString(outputs[0].address), ref.colVout.vSat + sei.colVout.vSat - txfee)
+    } else if (outputs.length === 2) {
+      txb.addOutput(addressToString(outputs[0].address), outputs[0].value === undefined ? ref.colVout.vSat - (txfee / 2) : outputs[0].value)
+      txb.addOutput(addressToString(outputs[1].address), outputs[1].value === undefined ? sei.colVout.vSat - (txfee / 2) : outputs[1].value)
+    }
 
     return txb.buildIncomplete()
   }

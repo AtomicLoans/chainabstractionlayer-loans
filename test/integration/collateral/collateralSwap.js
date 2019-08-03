@@ -19,7 +19,7 @@ function testCollateral (chain) {
     const secrets = [colParams.secrets.secretB1, colParams.secrets.secretC1, colParams.secrets.secretD1]
     const refundParams = [lockTxHash, colParams.pubKeys, secrets, colParams.secretHashes, colParams.expirations]
 
-    const refundTxHash = await chain.client.loan.collateralSwap.refund(...refundParams)
+    const refundTxHash = await chain.client.loan.collateralSwap.claim(...refundParams)
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
 
     const refundTxRaw = await chain.client.getMethod('getRawTransactionByHash')(refundTxHash)
@@ -40,7 +40,7 @@ function testCollateral (chain) {
 
     const to = await chain.client.getMethod('getNewAddress')('p2sh-segwit')
     const multisigParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
-    const { refundableSig, seizableSig } = await chain.client.loan.collateralSwap.multisigSign(...multisigParams)
+    const { refundableSig, seizableSig } = await chain.client.loan.collateralSwap.multisigWrite(...multisigParams)
 
     expect(refundableSig.startsWith('30')).to.equal(true)
     expect(seizableSig.startsWith('30')).to.equal(true)
@@ -58,17 +58,17 @@ function testCollateral (chain) {
     console.log('balBefore')
 
     const multisigBorrowerParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
-    const borrowerSigs = await chain.client.loan.collateralSwap.multisigSign(...multisigBorrowerParams)
+    const borrowerSigs = await chain.client.loan.collateralSwap.multisigWrite(...multisigBorrowerParams)
 
     const multisigParamsLender = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'lender', to]
-    const lenderSigs = await chain.client.loan.collateralSwap.multisigSign(...multisigParamsLender)
+    const lenderSigs = await chain.client.loan.collateralSwap.multisigWrite(...multisigParamsLender)
 
     const sigs = {
       refundable: [Buffer.from(borrowerSigs.refundableSig, 'hex'), Buffer.from(lenderSigs.refundableSig, 'hex')],
       seizable: [Buffer.from(borrowerSigs.seizableSig, 'hex'), Buffer.from(lenderSigs.seizableSig, 'hex')]
     }
 
-    const multisigSendTxHash = await chain.client.loan.collateralSwap.multisigSend(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
+    const multisigSendTxHash = await chain.client.loan.collateralSwap.multisigMove(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
 
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
 
@@ -88,17 +88,17 @@ function testCollateral (chain) {
     const to = await chain.client.getMethod('getNewAddress')('p2sh-segwit')
 
     const multisigBorrowerParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
-    const borrowerSigs = await chain.client.loan.collateralSwap.multisigSign(...multisigBorrowerParams)
+    const borrowerSigs = await chain.client.loan.collateralSwap.multisigWrite(...multisigBorrowerParams)
 
     const multisigParamsLender = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'lender', to]
-    const lenderSigs = await chain.client.loan.collateralSwap.multisigSign(...multisigParamsLender)
+    const lenderSigs = await chain.client.loan.collateralSwap.multisigWrite(...multisigParamsLender)
 
     const sigs = {
       refundable: [Buffer.from(borrowerSigs.refundableSig, 'hex'), Buffer.from(lenderSigs.refundableSig, 'hex')],
       seizable: [Buffer.from(borrowerSigs.seizableSig, 'hex'), Buffer.from(lenderSigs.seizableSig, 'hex')]
     }
 
-    const multisigSendTxHash = await chain.client.loan.collateralSwap.multisigSend(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
+    const multisigSendTxHash = await chain.client.loan.collateralSwap.multisigMove(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
 
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
 
@@ -116,7 +116,7 @@ function testCollateral (chain) {
     const { lockTxHash, colParams } = await lockCollateral(chain, 'biddingExpiration')
 
     const seizeParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
-    const seizeTxHash = await chain.client.loan.collateralSwap.seize(...seizeParams)
+    const seizeTxHash = await chain.client.loan.collateralSwap.snatch(...seizeParams)
 
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
 
@@ -134,7 +134,7 @@ function testCollateral (chain) {
     const { lockTxHash, colParams } = await lockCollateral(chain, 'biddingExpiration')
 
     const reclaimOneParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
-    const reclaimTx = await chain.client.loan.collateralSwap.reclaimOne(...reclaimOneParams)
+    const reclaimTx = await chain.client.loan.collateralSwap.regain(...reclaimOneParams)
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
   })
 }
@@ -148,7 +148,7 @@ async function lockCollateral (chain, customExpiration) {
     colParams.expirations[customExpiration] = curTimeExpiration
   }
 
-  const lockTxHash = await chain.client.loan.collateralSwap.lock(...lockParams)
+  const lockTxHash = await chain.client.loan.collateralSwap.init(...lockParams)
   await chains.bitcoinWithNode.client.chain.generateBlock(1)
 
   return { lockTxHash, colParams }
@@ -162,10 +162,10 @@ function getVinRedeemScript (vin) {
   }
 }
 
-describe('Collateral Flow', function () {
+describe('Collateral Swap Flow', function () {
   this.timeout(config.timeout)
 
   describe('Bitcoin - Node', () => {
-    testCollateral(chains.bitcoinNodeCollateralSwap)
+    testCollateral(chains.bitcoinWithNode)
   })
 })
