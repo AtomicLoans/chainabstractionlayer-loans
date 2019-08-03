@@ -102,43 +102,6 @@ export default class BitcoinCollateralProvider extends Provider {
         OPS.OP_CHECKSIG,
       OPS.OP_ELSE,
         OPS.OP_IF,
-          OPS.OP_SIZE,
-          bitcoin.script.number.encode(32),
-          OPS.OP_EQUAL,
-          OPS.OP_SWAP,
-          OPS.OP_SHA256,
-          Buffer.from(secretHashA2, 'hex'),
-          OPS.OP_EQUAL,
-          OPS.OP_ADD,
-          OPS.OP_2,
-          OPS.OP_EQUAL,
-          OPS.OP_SWAP,
-          OPS.OP_SIZE,
-          bitcoin.script.number.encode(32),
-          OPS.OP_EQUAL,
-          OPS.OP_SWAP,
-          OPS.OP_SHA256,
-          Buffer.from(secretHashB2, 'hex'),
-          OPS.OP_EQUAL,
-          OPS.OP_ADD,
-          OPS.OP_2,
-          OPS.OP_EQUAL,
-          OPS.OP_ADD,
-          OPS.OP_SWAP,
-          OPS.OP_SIZE,
-          bitcoin.script.number.encode(32),
-          OPS.OP_EQUAL,
-          OPS.OP_SWAP,
-          OPS.OP_SHA256,
-          Buffer.from(secretHashC2, 'hex'),
-          OPS.OP_EQUAL,
-          OPS.OP_ADD,
-          OPS.OP_2,
-          OPS.OP_EQUAL,
-          OPS.OP_ADD,
-          OPS.OP_2,
-          OPS.OP_GREATERTHANOREQUAL,
-          OPS.OP_VERIFY,
           bitcoin.script.number.encode(approveExpiration),
           OPS.OP_CHECKLOCKTIMEVERIFY,
           OPS.OP_DROP,
@@ -256,19 +219,8 @@ export default class BitcoinCollateralProvider extends Provider {
     return this._multisigSign(txHash, pubKeys, secretHashes, expirations, party, to)
   }
 
-  async multisigSend (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
-    const { secretHashA2, secretHashB2, secretHashC2 } = secretHashes
-
-    if (secrets.length !== 2) { throw new Error('You should only provide 2 secrets') }
-
-    let orderedSecrets = [null, null, null]
-    for (let secret of secrets) {
-      if (sha256(secret) === secretHashA2) { orderedSecrets[0] = secret }
-      if (sha256(secret) === secretHashB2) { orderedSecrets[1] = secret }
-      if (sha256(secret) === secretHashC2) { orderedSecrets[2] = secret }
-    }
-
-    return this._multisigSend(txHash, sigs, pubKeys, orderedSecrets, secretHashes, expirations, to)
+  async multisigSend (txHash, sigs, pubKeys, secretHashes, expirations, to) {
+    return this._multisigSend(txHash, sigs, pubKeys, secretHashes, expirations, to)
   }
 
   async seize (txHash, pubKeys, secret, secretHashes, expirations) {
@@ -403,7 +355,7 @@ export default class BitcoinCollateralProvider extends Provider {
     return { refundableSig, seizableSig }
   }
 
-  async _multisigSend (initiationTxHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
+  async _multisigSend (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
     const period = 'biddingPeriod'
     const network = this._bitcoinJsNetwork
@@ -431,8 +383,8 @@ export default class BitcoinCollateralProvider extends Provider {
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
 
-    ref.colInput = this.getCollateralInput(sigs.refundable, period, secrets, null)
-    sei.colInput = this.getCollateralInput(sigs.seizable, period, secrets, null)
+    ref.colInput = this.getCollateralInput(sigs.refundable, period, [], null)
+    sei.colInput = this.getCollateralInput(sigs.seizable, period, [], null)
 
     this.finalizeTx(tx, ref, 0)
     this.finalizeTx(tx, sei, 1)

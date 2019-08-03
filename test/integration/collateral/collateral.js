@@ -94,8 +94,7 @@ function testCollateral (chain) {
       seizable: [Buffer.from(borrowerSigs.seizableSig, 'hex'), Buffer.from(lenderSigs.seizableSig, 'hex')]
     }
 
-    const secrets = [colParams.secrets.secretA2, colParams.secrets.secretB2]
-    const multisigSendTxHash = await chain.client.loan.collateral.multisigSend(lockTxHash, sigs, colParams.pubKeys, secrets, colParams.secretHashes, colParams.expirations, to)
+    const multisigSendTxHash = await chain.client.loan.collateral.multisigSend(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
 
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
 
@@ -105,10 +104,8 @@ function testCollateral (chain) {
     const multisigSendVouts = multisigSendTx._raw.data.vout
     const multisigSendVins = multisigSendTx._raw.data.vin
 
-    expect(getVinRedeemScript(multisigSendVins[0]).includes(colParams.secrets.secretA2)).to.equal(true)
-    expect(getVinRedeemScript(multisigSendVins[1]).includes(colParams.secrets.secretA2)).to.equal(true)
-    expect(getVinRedeemScript(multisigSendVins[0]).includes(colParams.secrets.secretB2)).to.equal(true)
-    expect(getVinRedeemScript(multisigSendVins[1]).includes(colParams.secrets.secretB2)).to.equal(true)
+    expect(multisigSendVins.length).to.equal(2)
+    expect(multisigSendVouts.length).to.equal(1)
   })
 
   it('should allow multisig signing and sending', async () => {
@@ -127,8 +124,7 @@ function testCollateral (chain) {
       seizable: [Buffer.from(borrowerSigs.seizableSig, 'hex'), Buffer.from(lenderSigs.seizableSig, 'hex')]
     }
 
-    const secrets = [colParams.secrets.secretB2, colParams.secrets.secretC2]
-    const multisigSendTxHash = await chain.client.loan.collateral.multisigSend(lockTxHash, sigs, colParams.pubKeys, secrets, colParams.secretHashes, colParams.expirations, to)
+    const multisigSendTxHash = await chain.client.loan.collateral.multisigSend(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
 
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
 
@@ -138,10 +134,8 @@ function testCollateral (chain) {
     const multisigSendVouts = multisigSendTx._raw.data.vout
     const multisigSendVins = multisigSendTx._raw.data.vin
 
-    expect(getVinRedeemScript(multisigSendVins[0]).includes(colParams.secrets.secretB2)).to.equal(true)
-    expect(getVinRedeemScript(multisigSendVins[1]).includes(colParams.secrets.secretB2)).to.equal(true)
-    expect(getVinRedeemScript(multisigSendVins[0]).includes(colParams.secrets.secretC2)).to.equal(true)
-    expect(getVinRedeemScript(multisigSendVins[1]).includes(colParams.secrets.secretC2)).to.equal(true)
+    expect(multisigSendVins.length).to.equal(2)
+    expect(multisigSendVouts.length).to.equal(1)
   })
 
   it('should allow seizure', async () => {
