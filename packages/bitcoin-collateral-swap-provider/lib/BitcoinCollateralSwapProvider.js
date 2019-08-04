@@ -416,7 +416,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const { swapExpiration, biddingExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    col.colVout.vSat = col.colVout.value * 1e8
+    col.colVout.vSat = Math.floor(col.colVout.value * 1e8)
 
     const txb = new bitcoin.TransactionBuilder(network)
 
@@ -438,12 +438,14 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return txb.buildIncomplete()
   }
 
-  buildFullColTx (period, ref, sei, expirations, to) {
+  buildFullColTx (period, ref, sei, expirations, outputs) {
+    if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
+
     const { swapExpiration, biddingExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    ref.colVout.vSat = ref.colVout.value * 1e8
-    sei.colVout.vSat = sei.colVout.value * 1e8
+    ref.colVout.vSat = Math.floor(ref.colVout.value * 1e8)
+    sei.colVout.vSat = Math.floor(sei.colVout.value * 1e8)
 
     const txb = new bitcoin.TransactionBuilder(network)
 
@@ -462,7 +464,13 @@ export default class BitcoinCollateralSwapProvider extends Provider {
 
     txb.addInput(ref.colVout.txid, ref.colVout.n, 0, ref.prevOutScript)
     txb.addInput(sei.colVout.txid, sei.colVout.n, 0, sei.prevOutScript)
-    txb.addOutput(addressToString(to), ref.colVout.vSat + sei.colVout.vSat - txfee)
+
+    if (outputs.length === 1) {
+      txb.addOutput(addressToString(outputs[0].address), ref.colVout.vSat + sei.colVout.vSat - txfee)
+    } else if (outputs.length === 2) {
+      txb.addOutput(addressToString(outputs[0].address), outputs[0].value === undefined ? ref.colVout.vSat - (txfee / 2) : outputs[0].value)
+      txb.addOutput(addressToString(outputs[1].address), outputs[1].value === undefined ? sei.colVout.vSat - (txfee / 2) : outputs[1].value)
+    }
 
     return txb.buildIncomplete()
   }
