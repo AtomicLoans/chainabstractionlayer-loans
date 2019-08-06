@@ -1,545 +1,512 @@
+import * as bitcoin from 'bitcoinjs-lib'
 import Provider from '@atomicloans/provider'
+import { addressToString, sleep } from '@liquality/utils'
 import networks from '@liquality/bitcoin-networks'
-
 import {
-  calculateFee,
-  addressToPubKeyHash,
-  pubKeyToAddress,
-  pubKeyHashToAddress,
-  reverseBuffer,
-  scriptNumEncode
+  calculateFee
 } from '@liquality/bitcoin-utils'
 import {
   hash160,
-  sha256,
-  padHexStart
+  sha256
 } from '@liquality/crypto'
-import { sleep } from '@liquality/utils'
 
 import { version } from '../package.json'
 
+const OPS = bitcoin.script.OPS
+
 export default class BitcoinCollateralSwapProvider extends Provider {
-  constructor (chain = { network: networks.bitcoin }) {
+  constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2sh_p2wsh', address: 'p2sh_p2wpkh' }) {
     super()
     this._network = chain.network
+    if (!['p2wsh', 'p2sh_p2wsh', 'p2sh'].includes(mode.script)) {
+      throw new Error('Mode must be one of p2wsh, p2sh_p2wsh, p2sh')
+    }
+    if (!['p2wpkh', 'p2sh_p2wpkh', 'p2pkh'].includes(mode.address)) {
+      throw new Error('Mode must be one of p2wpkh, p2sh_p2wpkh, p2pkh')
+    }
+    this._mode = mode
+    if (this._network.name === networks.bitcoin.name) {
+      this._bitcoinJsNetwork = bitcoin.networks.mainnet
+    } else if (this._network.name === networks.bitcoin_testnet.name) {
+      this._bitcoinJsNetwork = bitcoin.networks.testnet
+    } else if (this._network.name === networks.bitcoin_regtest.name) {
+      this._bitcoinJsNetwork = bitcoin.networks.regtest
+    }
   }
 
-  createRefundableScript (borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration) {
-    let loanExpirationHex = scriptNumEncode(loanExpiration)
-    let biddingExpirationHex = scriptNumEncode(biddingExpiration)
-
-    const borrowerPubKeyHash = hash160(borrowerPubKey)
-    const borrowerPubKeyPushDataOpcode = padHexStart((borrowerPubKey.length / 2).toString(16))
-
-    const lenderPubKeyPushDataOpcode = padHexStart((lenderPubKey.length / 2).toString(16))
-
-    const agentPubKeyPushDataOpcode = padHexStart((agentPubKey.length / 2).toString(16))
-
-    const loanExpirationPushDataOpcode = padHexStart(loanExpirationHex.length.toString(16))
-    const loanExpirationHexEncoded = loanExpirationHex.toString('hex')
-    const biddingExpirationPushDataOpcode = padHexStart(biddingExpirationHex.length.toString(16))
-    const biddingExpirationHexEncoded = biddingExpirationHex.toString('hex')
-
-    return [
-      '63', // OP_IF
-        '82', // OP_SIZE
-        '01', // OP_PUSHDATA(1)
-        '20', // Hex 32
-        '88', // OP_EQUALVERIFY
-        'a8', // OP_SHA256
-        '20', secretHashD1, // OP_PUSHDATA(20) {secretHash}
-        '88', // OP_EQUALVERIFY
-        '76', // OP_DUP
-        'a9', // OP_HASH160
-        '14', bidderPubKeyHash, // OP_PUSHDATA(20) {recipientPubKeyHash}
-        '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
-      '67', // OP_ELSE
-        '63', // OP_IF
-          loanExpirationPushDataOpcode, // OP_PUSHDATA({loanExpirationHexLength})
-          loanExpirationHexEncoded, // {loanExpirationHexEncoded}
-          'b1', // OP_CHECKLOCKTIMEVERIFY
-          '75', // OP_DROP
-          '52', // PUSH #2
-          borrowerPubKeyPushDataOpcode, borrowerPubKey, // OP_PUSHDATA({alicePubKeyLength}) {alicePubKey}
-          lenderPubKeyPushDataOpcode, lenderPubKey, // OP_PUSHDATA({bobPubKeyLength}) {bobPubKey}
-          agentPubKeyPushDataOpcode, agentPubKey, // OP_PUSHDATA({agentPubKeyLength}) {agentPubKey}
-          '53', // PUSH #3
-          'ae', // CHECKMULTISIG
-        '67', // OP_ELSE
-          biddingExpirationPushDataOpcode, // OP_PUSHDATA({biddingExpirationHexLength})
-          biddingExpirationHexEncoded, // {biddingExpirationHexEncoded}
-          'b1', // OP_CHECKLOCKTIMEVERIFY
-          '75', // OP_DROP
-          '76', 'a9', // OP_DUP OP_HASH160
-          '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
-          '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
-        '68', // OP_ENDIF
-      '68' // OP_ENDIF
-    ].join('')
+  getPubKeyHash (address) {
+    // TODO: wrapped segwit addresses not supported. Not possible to derive pubkeyHash from address
+    try {
+      const bech32 = bitcoin.address.fromBech32(address)
+      return bech32.data
+    } catch (e) {
+      const base58 = bitcoin.address.fromBase58Check(address)
+      return base58.hash
+    }
   }
 
-  createSeizableScript (borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration) {
-    let loanExpirationHex = scriptNumEncode(loanExpiration)
-    let biddingExpirationHex = scriptNumEncode(biddingExpiration)
-    let seizureExpirationHex = scriptNumEncode(seizureExpiration)
+  pubKeyToAddress (pubkey) {
+    const network = this._bitcoinJsNetwork
+    if (this._mode.address === 'p2pkh') {
+      return (bitcoin.payments.p2pkh({ pubkey, network })).address
+    } else if (this._mode.address === 'p2sh_p2wpkh') {
+      return (bitcoin.payments.p2sh({ redeem: bitcoin.payments.p2wpkh({ pubkey, network }), network })).address
+    } else if (this._mode.address === 'p2wpkh') {
+      return (bitcoin.payments.p2wpkh({ pubkey, network })).address
+    }
+  }
+
+  getCollateralOutput (pubKeys, secretHashes, expirations, seizable) {
+    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const { secretHashA1 }                              = secretHashes
+    const { secretHashB1 }                              = secretHashes
+    const { secretHashC1 }                              = secretHashes
+    const { secretHashD1 }                              = secretHashes
+    const { swapExpiration, biddingExpiration }         = expirations
 
     const borrowerPubKeyHash = hash160(borrowerPubKey)
-    const borrowerPubKeyPushDataOpcode = padHexStart((borrowerPubKey.length / 2).toString(16))
-
     const lenderPubKeyHash = hash160(lenderPubKey)
-    const lenderPubKeyPushDataOpcode = padHexStart((lenderPubKey.length / 2).toString(16))
 
-    const agentPubKeyPushDataOpcode = padHexStart((agentPubKey.length / 2).toString(16))
+    const seizablePubKeyHash = seizable ? lenderPubKeyHash : borrowerPubKeyHash
 
-    const loanExpirationPushDataOpcode = padHexStart(loanExpirationHex.length.toString(16))
-    const loanExpirationHexEncoded = loanExpirationHex.toString('hex')
-    const biddingExpirationPushDataOpcode = padHexStart(biddingExpirationHex.length.toString(16))
-    const biddingExpirationHexEncoded = biddingExpirationHex.toString('hex')
-    const seizureExpirationPushDataOpcode = padHexStart(seizureExpirationHex.length.toString(16))
-    const seizureExpirationHexEncoded = seizureExpirationHex.toString('hex')
-
-    return [
-      '63', // OP_IF
-        '82', // OP_SIZE
-        '01', // OP_PUSHDATA(1)
-        '20', // Hex 32
-        '88', // OP_EQUALVERIFY
-        'a8', // OP_SHA256
-        '20', secretHashD1, // OP_PUSHDATA(20) {secretHash}
-        '88', // OP_EQUALVERIFY
-        '76', // OP_DUP
-        'a9', // OP_HASH160
-        '14', bidderPubKeyHash, // OP_PUSHDATA(20) {recipientPubKeyHash}
-        '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
-      '67', // OP_ELSE
-        '63', // OP_IF
-          loanExpirationPushDataOpcode, // OP_PUSHDATA({loanExpirationHexLength})
-          loanExpirationHexEncoded, // {loanExpirationHexEncoded}
-          'b1', // OP_CHECKLOCKTIMEVERIFY
-          '75', // OP_DROP
-          '52', // PUSH #2
-          borrowerPubKeyPushDataOpcode, borrowerPubKey, // OP_PUSHDATA({alicePubKeyLength}) {alicePubKey}
-          lenderPubKeyPushDataOpcode, lenderPubKey, // OP_PUSHDATA({bobPubKeyLength}) {bobPubKey}
-          agentPubKeyPushDataOpcode, agentPubKey, // OP_PUSHDATA({agentPubKeyLength}) {agentPubKey}
-          '53', // PUSH #3
-          'ae', // CHECKMULTISIG
-        '67', // OP_ELSE
-          '63', // OP_IF
-            biddingExpirationPushDataOpcode, // OP_PUSHDATA({expirationHexLength})
-            biddingExpirationHexEncoded, // {expirationHexEncoded}
-            'b1', // OP_CHECKLOCKTIMEVERIFY
-            '75', // OP_DROP
-            '82', // OP_SIZE
-            '01', // OP_PUSHDATA(1)
-            '20', // Hex 32
-            '88', // OP_EQUALVERIFY
-            'a8', // OP_SHA256
-            '20', secretHashA1, // OP_PUSHDATA(32) {secretHashA1}
-            '88', // OP_EQUALVERIFY
-            '76', 'a9', // OP_DUP OP_HASH160
-            '14', lenderPubKeyHash, // OP_PUSHDATA(20) {bobPubKeyHash}
-            '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
-            '67', // OP_ELSE
-            seizureExpirationPushDataOpcode, // OP_PUSHDATA({seizureExpirationHexLength})
-            seizureExpirationHexEncoded, // {seizureExpirationHexEncoded}
-            'b1', // OP_CHECKLOCKTIMEVERIFY
-            '75', // OP_DROP
-            '76', 'a9', // OP_DUP OP_HASH160
-            '14', borrowerPubKeyHash, // OP_PUSHDATA(20) {alicePubKeyHash}
-            '88', 'ac', // OP_EQUALVERIFY OP_CHECKSIG
-          '68', // OP_ENDIF
-        '68', // OP_ENDIF
-      '68' // OP_ENDIF
-    ].join('')
+    return bitcoin.script.compile([
+      OPS.OP_IF,
+        OPS.OP_SIZE,
+        bitcoin.script.number.encode(32),
+        OPS.OP_EQUAL,
+        OPS.OP_SWAP,
+        OPS.OP_SHA256,
+        Buffer.from(secretHashA1, 'hex'),
+        OPS.OP_EQUAL,
+        OPS.OP_ADD,
+        OPS.OP_2,
+        OPS.OP_EQUAL,
+        OPS.OP_SWAP,
+        OPS.OP_SIZE,
+        bitcoin.script.number.encode(32),
+        OPS.OP_EQUAL,
+        OPS.OP_SWAP,
+        OPS.OP_SHA256,
+        Buffer.from(secretHashB1, 'hex'),
+        OPS.OP_EQUAL,
+        OPS.OP_ADD,
+        OPS.OP_2,
+        OPS.OP_EQUAL,
+        OPS.OP_ADD,
+        OPS.OP_SWAP,
+        OPS.OP_SIZE,
+        bitcoin.script.number.encode(32),
+        OPS.OP_EQUAL,
+        OPS.OP_SWAP,
+        OPS.OP_SHA256,
+        Buffer.from(secretHashC1, 'hex'),
+        OPS.OP_EQUAL,
+        OPS.OP_ADD,
+        OPS.OP_2,
+        OPS.OP_EQUAL,
+        OPS.OP_ADD,
+        OPS.OP_2,
+        OPS.OP_GREATERTHANOREQUAL,
+        OPS.OP_VERIFY,
+        OPS.OP_SIZE,
+        bitcoin.script.number.encode(32),
+        OPS.OP_EQUALVERIFY,
+        OPS.OP_SHA256,
+        Buffer.from(secretHashD1, 'hex'),
+        OPS.OP_EQUALVERIFY,
+        OPS.OP_DUP,
+        OPS.OP_HASH160,
+        Buffer.from(borrowerPubKeyHash, 'hex'),
+        OPS.OP_EQUALVERIFY,
+        OPS.OP_CHECKSIG,
+      OPS.OP_ELSE,
+        OPS.OP_IF,
+          bitcoin.script.number.encode(swapExpiration),
+          OPS.OP_CHECKLOCKTIMEVERIFY,
+          OPS.OP_DROP,
+          OPS.OP_2,
+          Buffer.from(borrowerPubKey, 'hex'),
+          Buffer.from(lenderPubKey, 'hex'),
+          Buffer.from(agentPubKey, 'hex'),
+          OPS.OP_3,
+          OPS.OP_CHECKMULTISIG,
+        OPS.OP_ELSE,
+          bitcoin.script.number.encode(biddingExpiration),
+          OPS.OP_CHECKLOCKTIMEVERIFY,
+          OPS.OP_DROP,
+          OPS.OP_DUP,
+          OPS.OP_HASH160,
+          Buffer.from(seizablePubKeyHash, 'hex'),
+          OPS.OP_EQUALVERIFY,
+          OPS.OP_CHECKSIG,
+        OPS.OP_ENDIF,
+      OPS.OP_ENDIF
+    ])
   }
 
-  async lock (refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration) {    
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
+  getCollateralInput (sigs, period, secrets, pubKey) {
+    if (!Array.isArray(sigs)) { sigs = [sigs]}
 
-    const refundableScriptPubKey = padHexStart(refundableScript)
-    const seizableScriptPubKey = padHexStart(seizableScript)
-
-    const refundableP2shAddress = pubKeyToAddress(refundableScriptPubKey, this._network.name, 'scriptHash')
-    const seizableP2shAddress = pubKeyToAddress(seizableScriptPubKey, this._network.name, 'scriptHash')
-
-    const refundableResult = await this.getMethod('sendTransaction')(refundableP2shAddress, refundableValue, refundableScript)
-    const seizableResult = await this.getMethod('sendTransaction')(seizableP2shAddress, seizableValue, seizableScript)
-
-    return { refundableResult, seizableResult }
-  }
-
-  async refund (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration) {
-    const secretHashD1 = sha256(secretD1)
-    const bidderPubKeyHash = hash160(bidderPubKey)
-
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
-
-    const refundableResult = await this._refund(refundableTxHash, refundableScript, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration, false, 'loanPeriod')
-    const seizableResult = await this._refund(seizableTxHash, seizableScript, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretD1, loanExpiration, biddingExpiration, seizureExpiration, true, 'loanPeriod')
-
-    return { refundableResult, seizableResult }
-  }
-
-  async seize (seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const secretHashA1 = sha256(secretA1)
-
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
-
-    return this._refund(seizableTxHash, seizableScript, borrowerPubKey, lenderPubKey, secretA1, secretHashB1, secretHashC1, loanExpiration, biddingExpiration, seizureExpiration, true, 'seizurePeriod')
-  }
-
-  async refundRefundable (refundableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration)
-
-    return this._refund(refundableTxHash, refundableScript, borrowerPubKey, lenderPubKey, secretHashA1, secretHashB1, secretHashC1, loanExpiration, biddingExpiration, seizureExpiration, false, 'seizurePeriod')
-  }
-
-  async refundSeizable (seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
-
-    return this._refund(seizableTxHash, seizableScript, borrowerPubKey, lenderPubKey, secretHashA1, secretHashB1, loanExpiration, biddingExpiration, seizureExpiration, true, 'refundPeriod')
-  }
-
-  async multisigSign (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration, isBorrower, to) {
-    const bidderPubKeyHash = hash160(bidderPubKey)
-
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
-
-    const from = isBorrower ? pubKeyToAddress(borrowerPubKey, this._network.name, 'pubKeyHash') : pubKeyToAddress(lenderPubKey, this._network.name, 'pubKeyHash')
-
-    const refundableSignature = await this._multisigSign(refundableTxHash, refundableScript, loanExpiration, to, from)
-    const seizableSignature = await this._multisigSign(seizableTxHash, seizableScript, loanExpiration, to, from)
-
-    return { refundableSignature, seizableSignature }
-  }
-
-  async multisigSend (refundableTxHash, seizableTxHash, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration, signatureOne, signatureTwo, to) {
-    const bidderPubKeyHash = hash160(bidderPubKey)
-
-    const refundableScript = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashD1, loanExpiration, biddingExpiration)
-    const seizableScript = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKeyHash, secretHashA1, secretHashD1, loanExpiration, biddingExpiration, seizureExpiration)
-
-    const refundableResult = await this._multisigSend(refundableTxHash, refundableScript, loanExpiration, signatureOne.refundableSignature, signatureTwo.refundableSignature, to)
-    const seizableResult = await this._multisigSend(seizableTxHash, seizableScript, loanExpiration, signatureOne.seizableSignature, signatureTwo.seizableSignature, to)
-
-    return { refundableResult, seizableResult }
-  }
-
-  doesTransactionMatchRefundableParams (transaction, refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const data = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration)
-    const scriptPubKey = padHexStart(data)
-    const receivingAddress = pubKeyToAddress(scriptPubKey, this._network.name, 'scriptHash')
-    const sendScript = this.getMethod('createScript')(receivingAddress)
-    return Boolean(transaction._raw.vout.find(vout => vout.scriptPubKey.hex === sendScript && vout.valueSat === refundableValue))
-  }
-
-  doesTransactionMatchSeizableParams (transaction, refundableValue, seizableValue, borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const data = this.createSeizableScript(borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
-    const scriptPubKey = padHexStart(data)
-    const receivingAddress = pubKeyToAddress(scriptPubKey, this._network.name, 'scriptHash')
-    const sendScript = this.getMethod('createScript')(receivingAddress)
-    return Boolean(transaction._raw.vout.find(vout => vout.scriptPubKey.hex === sendScript && vout.valueSat === seizableValue))
-  }
-
-  async verifyLockRefundableTransaction (initiationTxHash, refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const initiationTransaction = await this.getMethod('getTransactionByHash')(initiationTxHash)
-    return this.doesTransactionMatchRefundableParams(transaction, refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
-  }
-
-  async verifyLockSeizableTransaction (initiationTxHash, refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const initiationTransaction = await this.getMethod('getTransactionByHash')(initiationTxHash)
-    return this.doesTransactionMatchSeizableParams(transaction, refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
-  }
-
-  async findRefundableTransaction (borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration, predicate) {
-    const script = this.createRefundableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration)
-    const scriptPubKey = padHexStart(script)
-    const p2shAddress = pubKeyToAddress(scriptPubKey, this._network.name, 'scriptHash')
-    let refundableTransaction = null
-    while (!refundableTransaction) {
-      let p2shTransactions = await this.getMethod('getAddressDeltas')([p2shAddress])
-      const p2shMempoolTransactions = await this.getMethod('getAddressMempool')([p2shAddress])
-      p2shTransactions = p2shTransactions.concat(p2shMempoolTransactions)
-      const transactionIds = p2shTransactions.map(tx => tx.txid)
-      const transactions = await Promise.all(transactionIds.map(this.getMethod('getTransactionByHash')))
-      refundableTransaction = transactions.find(predicate)
-      await sleep(5000)
-    }
-    return refundableTransaction
-  }
-
-  async findSeizableTransaction (borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration, predicate) {
-    const script = this.createSeizableScript(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secrethashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration)
-    const scriptPubKey = padHexStart(script)
-    const p2shAddress = pubKeyToAddress(scriptPubKey, this._network.name, 'scriptHash')
-    let seizableTransaction = null
-    while (!seizableTransaction) {
-      let p2shTransactions = await this.getMethod('getAddressDeltas')([p2shAddress])
-      const p2shMempoolTransactions = await this.getMethod('getAddressMempool')([p2shAddress])
-      p2shTransactions = p2shTransactions.concat(p2shMempoolTransactions)
-      const transactionIds = p2shTransactions.map(tx => tx.txid)
-      const transactions = await Promise.all(transactionIds.map(this.getMethod('getTransactionByHash')))
-      seizableTransaction = transactions.find(predicate)
-      await sleep(5000)
-    }
-    return seizableTransaction
-  }
-
-  async findLockRefundableTransaction (refundableValue, seizableValue, borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const lockRefundableTransaction = await this.findRefundableTransaction(borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration,
-      tx => this.doesTransactionMatchRefundableParams(tx, refundableValue, seizableValue, borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration)
-    )
-
-    return lockRefundableTransaction
-  }
-
-  async findLockSeizableTransaction (refundableValue, seizableValue, borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, secretHashC1, secretHashC2, loanExpiration, biddingExpiration, seizureExpiration) {
-    const lockSeizableTransaction = await this.findSeizableTransaction(borrowerPubKey, lenderPubKey, agentPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration,
-      tx => this.doesTransactionMatchSeizableParams(tx, refundableValue, seizableValue, borrowerPubKey, agentPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration)
-    )
-
-    return lockSeizableTransaction
-  }
-
-  async _refund (initiationTxHash, script, borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey, borrowerSecretParam, bidderSecretParam, loanExpiration, biddingExpiration, seizureExpiration, seizable, period) {
-    let secret, lockTime
-    let requiresSecret = false
-    if (period === 'loanPeriod') {
-      secret = bidderSecretParam
-      requiresSecret = true
-    } else if (period === 'seizurePeriod' && seizable === true) {
-      secret = borrowerSecretParam
-      requiresSecret = true
-    }
-
-    if (period === 'loanPeriod') {
-      lockTime = 0
+    let ifBranch
+    if (period === 'claimPeriod') {
+      ifBranch = [ OPS.OP_TRUE ]
     } else if (period === 'biddingPeriod') {
-      lockTime = loanExpiration + 100
+      ifBranch = [ OPS.OP_TRUE, OPS.OP_FALSE ]
     } else if (period === 'seizurePeriod') {
-      lockTime = biddingExpiration + 100
+      ifBranch = [ OPS.OP_FALSE, OPS.OP_FALSE ]
+    }
+
+    let secretParams = []
+    for (let secret of secrets) {
+      secretParams.unshift(secret === null ? OPS.OP_FALSE : Buffer.from(secret, 'hex'))
+    }
+
+    const pubKeyParam = pubKey === null ? [] : [pubKey]
+    const multisigParams = period === 'biddingPeriod' ? [OPS.OP_0] : []
+
+    return bitcoin.script.compile([
+      ...multisigParams,
+      ...sigs,
+      ...pubKeyParam,
+      ...secretParams,
+      ...ifBranch
+    ])
+  }
+
+  getCollateralPaymentVariants (collateralOutput) {
+    const p2wsh = bitcoin.payments.p2wsh({
+      redeem: { output: collateralOutput, network: this._bitcoinJsNetwork },
+      network: this._bitcoinJsNetwork
+    })
+    const p2sh_p2wsh = bitcoin.payments.p2sh({
+      redeem: p2wsh, network: this._bitcoinJsNetwork
+    })
+    const p2sh = bitcoin.payments.p2sh({
+      redeem: { output: collateralOutput, network: this._bitcoinJsNetwork },
+      network: this._bitcoinJsNetwork
+    })
+
+    return { p2wsh, p2sh_p2wsh, p2sh }
+  }
+
+  async init (values, pubKeys, secretHashes, expirations) {
+    const { refundableValue, seizableValue } = values
+
+    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+
+    const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
+    const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
+
+    return this.getMethod('sendBatchTransaction')([
+      { to: refundableAddress, value: refundableValue },
+      { to: seizableAddress, value: seizableValue }
+    ])
+  }
+
+  async getInitAddresses (pubKeys, secretHashes, expirations) {
+    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+
+    const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
+    const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
+
+    return { refundableAddress, seizableAddress }
+  }
+
+  async claim (txHash, pubKeys, secrets, secretHashes, expirations) {
+    const { secretHashA1, secretHashB1, secretHashC1, secretHashD1 } = secretHashes
+
+    if (secrets.length !== 3) { throw new Error('You should only provide 3 secrets') }
+
+    let orderedSecrets = [null, null, null, null]
+    for (let secret of secrets) {
+      if (sha256(secret) === secretHashA1) { orderedSecrets[0] = secret }
+      if (sha256(secret) === secretHashB1) { orderedSecrets[1] = secret }
+      if (sha256(secret) === secretHashC1) { orderedSecrets[2] = secret }
+      if (sha256(secret) === secretHashD1) { orderedSecrets[3] = secret }
+    }
+
+    return this._refundAll(txHash, pubKeys, orderedSecrets, secretHashes, expirations, 'claimPeriod')
+  }
+
+  async multisigWrite (txHash, pubKeys, secretHashes, expirations, party, to) {
+    return this._multisigWrite(txHash, pubKeys, secretHashes, expirations, party, to)
+  }
+
+  async multisigMove (txHash, sigs, pubKeys, secretHashes, expirations, to) {
+    return this._multisigMove(txHash, sigs, pubKeys, secretHashes, expirations, to)
+  }
+
+  async snatch (txHash, pubKeys, secretHashes, expirations) {
+    return this._refundOne(txHash, pubKeys, secretHashes, expirations, 'seizurePeriod', true)
+  }
+
+  async regain (txHash, pubKeys, secretHashes, expirations) {
+    return this._refundOne(txHash, pubKeys, secretHashes, expirations, 'seizurePeriod', false)
+  }
+
+  async _refundOne (initiationTxHash, pubKeys, secretHashes, expirations, period, seizable) {
+    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const network = this._bitcoinJsNetwork
+    const pubKey = seizable ? lenderPubKey : borrowerPubKey
+    const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
+    const wif = await this.getMethod('dumpPrivKey')(address)
+    const wallet = bitcoin.ECPair.fromWIF(wif, network)
+
+    const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
+    const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
+
+    let col = {} // Collateral Object
+
+    col.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, seizable)
+    col.colPaymentVariants = this.getCollateralPaymentVariants(col.output)
+    this.setPaymentVariants(initiationTx, col)
+    col.colVout.txid = initiationTxHash
+
+    const tx = this.buildColTx(period, col, expirations, address)
+
+    this.setHashForSigOrWit(tx, col, 0)
+    const colSig = bitcoin.script.signature.encode(wallet.sign(col.sigHash), bitcoin.Transaction.SIGHASH_ALL)
+    col.colInput = this.getCollateralInput(colSig, period, [], pubKey)
+
+    this.setHashForSigOrWit(tx, col, 0)
+    this.finalizeTx(tx, col, 0)
+
+    return this.getMethod('sendRawTransaction')(tx.toHex())
+  }
+
+  async _refundAll (initiationTxHash, pubKeys, secrets, secretHashes, expirations, period) {
+    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const network = this._bitcoinJsNetwork
+    const pubKey = (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
+    const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
+    const wif = await this.getMethod('dumpPrivKey')(address)
+    const wallet = bitcoin.ECPair.fromWIF(wif, network)
+
+    const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
+    const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
+
+    let ref = {} // Refundable Object
+    let sei = {} // Seizable Object
+
+    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+
+    ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
+    sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+
+    this.setPaymentVariants(initiationTx, ref)
+    this.setPaymentVariants(initiationTx, sei)
+
+    ref.colVout.txid = initiationTxHash
+    sei.colVout.txid = initiationTxHash
+
+    const tx = this.buildFullColTx(period, ref, sei, expirations, address)
+
+    this.setHashForSigOrWit(tx, ref, 0)
+    this.setHashForSigOrWit(tx, sei, 1)
+
+    const refundableSig = bitcoin.script.signature.encode(wallet.sign(ref.sigHash), bitcoin.Transaction.SIGHASH_ALL)
+    const seizableSig = bitcoin.script.signature.encode(wallet.sign(sei.sigHash), bitcoin.Transaction.SIGHASH_ALL)
+
+    ref.colInput = this.getCollateralInput(refundableSig, period, secrets, pubKey)
+    sei.colInput = this.getCollateralInput(seizableSig, period, secrets, pubKey)
+
+    this.setHashForSigOrWit(tx, ref, 0)
+    this.setHashForSigOrWit(tx, sei, 1)
+
+    this.finalizeTx(tx, ref, 0)
+    this.finalizeTx(tx, sei, 1)
+
+    return this.getMethod('sendRawTransaction')(tx.toHex())
+  }
+
+  async _multisigWrite (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
+    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const { swapExpiration, biddingExpiration, seizureExpiration } = expirations
+    const period = 'biddingPeriod'
+    const network = this._bitcoinJsNetwork
+
+    const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : agentPubKey
+    const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
+
+    const wif = await this.getMethod('dumpPrivKey')(address)
+    const wallet = bitcoin.ECPair.fromWIF(wif, network)
+
+    const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
+    const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
+
+    let ref = {} // Refundable Object
+    let sei = {} // Seizable Object
+
+    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+
+    ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
+    sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+
+    this.setPaymentVariants(initiationTx, ref)
+    this.setPaymentVariants(initiationTx, sei)
+
+    ref.colVout.txid = initiationTxHash
+    sei.colVout.txid = initiationTxHash
+
+    const tx = this.buildFullColTx(period, ref, sei, expirations, to)
+
+    this.setHashForSigOrWit(tx, ref, 0)
+    this.setHashForSigOrWit(tx, sei, 1)
+
+    const refundableSig = (bitcoin.script.signature.encode(wallet.sign(ref.sigHash), bitcoin.Transaction.SIGHASH_ALL)).toString('hex')
+    const seizableSig = (bitcoin.script.signature.encode(wallet.sign(sei.sigHash), bitcoin.Transaction.SIGHASH_ALL)).toString('hex')
+
+    return { refundableSig, seizableSig }
+  }
+
+  async _multisigMove (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
+    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const period = 'biddingPeriod'
+    const network = this._bitcoinJsNetwork
+
+    const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
+    const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
+
+    let ref = {} // Refundable Object
+    let sei = {} // Seizable Object
+
+    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+
+    ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
+    sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+
+    this.setPaymentVariants(initiationTx, ref)
+    this.setPaymentVariants(initiationTx, sei)
+
+    ref.colVout.txid = initiationTxHash
+    sei.colVout.txid = initiationTxHash
+
+    const tx = this.buildFullColTx(period, ref, sei, expirations, to)
+
+    this.setHashForSigOrWit(tx, ref, 0)
+    this.setHashForSigOrWit(tx, sei, 1)
+
+    ref.colInput = this.getCollateralInput(sigs.refundable, period, [], null)
+    sei.colInput = this.getCollateralInput(sigs.seizable, period, [], null)
+
+    this.finalizeTx(tx, ref, 0)
+    this.finalizeTx(tx, sei, 1)
+
+    return this.getMethod('sendRawTransaction')(tx.toHex())
+  }
+
+  setPaymentVariants (initiationTx, col) {
+    for (const voutIndex in initiationTx._raw.data.vout) {
+      const vout = initiationTx._raw.data.vout[voutIndex]
+      const paymentVariantEntry = Object.entries(col.colPaymentVariants).find(([, payment]) => payment.output.toString('hex') === vout.scriptPubKey.hex)
+      if (paymentVariantEntry) {
+        col.paymentVariantName = paymentVariantEntry[0]
+        col.paymentVariant = paymentVariantEntry[1]
+        col.colVout = vout
+      }
+    }
+  }
+
+  buildColTx (period, col, expirations, to) {
+    const { swapExpiration, biddingExpiration } = expirations
+    const network = this._bitcoinJsNetwork
+
+    col.colVout.vSat = Math.floor(col.colVout.value * 1e8)
+
+    const txb = new bitcoin.TransactionBuilder(network)
+
+    if (period === 'biddingPeriod') {
+      txb.setLockTime(swapExpiration)
+    } else if (period === 'seizurePeriod') {
+      txb.setLockTime(biddingExpiration)
+    }
+
+    col.prevOutScript = col.paymentVariant.output
+
+    // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
+    // TODO: use node's feePerByte
+    const txfee = calculateFee(6, 6, 14)
+
+    txb.addInput(col.colVout.txid, col.colVout.n, 0, col.prevOutScript)
+    txb.addOutput(addressToString(to), col.colVout.vSat - txfee)
+
+    return txb.buildIncomplete()
+  }
+
+  buildFullColTx (period, ref, sei, expirations, outputs) {
+    if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
+
+    const { swapExpiration, biddingExpiration } = expirations
+    const network = this._bitcoinJsNetwork
+
+    ref.colVout.vSat = Math.floor(ref.colVout.value * 1e8)
+    sei.colVout.vSat = Math.floor(sei.colVout.value * 1e8)
+
+    const txb = new bitcoin.TransactionBuilder(network)
+
+    if (period === 'biddingPeriod') {
+      txb.setLockTime(swapExpiration)
+    } else if (period === 'seizurePeriod') {
+      txb.setLockTime(biddingExpiration)
+    }
+
+    ref.prevOutScript = ref.paymentVariant.output
+    sei.prevOutScript = sei.paymentVariant.output
+
+    // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
+    // TODO: use node's feePerByte
+    const txfee = calculateFee(6, 6, 14)
+
+    txb.addInput(ref.colVout.txid, ref.colVout.n, 0, ref.prevOutScript)
+    txb.addInput(sei.colVout.txid, sei.colVout.n, 0, sei.prevOutScript)
+
+    if (outputs.length === 1) {
+      txb.addOutput(addressToString(outputs[0].address), ref.colVout.vSat + sei.colVout.vSat - txfee)
+    } else if (outputs.length === 2) {
+      txb.addOutput(addressToString(outputs[0].address), outputs[0].value === undefined ? ref.colVout.vSat - (txfee / 2) : outputs[0].value)
+      txb.addOutput(addressToString(outputs[1].address), outputs[1].value === undefined ? sei.colVout.vSat - (txfee / 2) : outputs[1].value)
+    }
+
+    return txb.buildIncomplete()
+  }
+
+  setHashForSigOrWit (tx, col, i) {
+    const network = this._bitcoinJsNetwork
+    const needsWitness = col.paymentVariantName === 'p2wsh' || col.paymentVariantName === 'p2sh_p2wsh'
+
+    if (needsWitness) {
+      col.sigHash = tx.hashForWitnessV0(i, col.colPaymentVariants.p2wsh.redeem.output, col.colVout.vSat, bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
     } else {
-      lockTime = seizureExpiration + 100
+      col.sigHash = tx.hashForSignature(i, col.paymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
+    }
+  }
+
+  finalizeTx (tx, col, i) {
+    const network = this._bitcoinJsNetwork
+    const needsWitness = col.paymentVariantName === 'p2wsh' || col.paymentVariantName === 'p2sh_p2wsh'
+
+    col.paymentParams = { redeem: { output: col.output, input: col.colInput, network }, network }
+
+    col.paymentWithInput = needsWitness
+      ? bitcoin.payments.p2wsh(col.paymentParams)
+      : bitcoin.payments.p2sh(col.paymentParams)
+
+    if (needsWitness) {
+      tx.setWitness(i, col.paymentWithInput.witness)
     }
 
-    const lockTimeHex = padHexStart(scriptNumEncode(lockTime).toString('hex'), 8)
-
-    const pubKey = (period === 'seizurePeriod' && requiresSecret) ? lenderPubKey : bidderPubKey
-    const to = pubKeyToAddress(pubKey, this._network.name, 'pubKeyHash')
-
-    const scriptPubKey = padHexStart(script)
-    const p2shAddress = pubKeyToAddress(scriptPubKey, this._network.name, 'scriptHash')
-    const sendScript = this.getMethod('createScript')(p2shAddress)
-
-    const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
-    const initiationTx = await this.getMethod('splitTransaction')(initiationTxRaw, true)
-    const voutIndex = initiationTx.outputs.findIndex((output) => output.script.toString('hex') === sendScript)
-
-    const txHashLE = Buffer.from(initiationTxHash, 'hex').reverse().toString('hex') // TX HASH IN LITTLE ENDIAN
-    const newTxInput = this.generateSigTxInput(txHashLE, voutIndex, script)
-    const newTx = this.generateRawTx(initiationTx, voutIndex, to, newTxInput, lockTimeHex)
-    const splitNewTx = await this.getMethod('splitTransaction')(newTx, true)
-    const outputScriptObj = await this.getMethod('serializeTransactionOutputs')(splitNewTx)
-    const outputScript = outputScriptObj.toString('hex')
-
-    const walletAddress = await this.getMethod('getWalletAddress')(to)
-
-    const signature = await this.getMethod('signP2SHTransaction')(
-      [[initiationTx, voutIndex, script, 0]],
-      [walletAddress.derivationPath],
-      outputScript,
-      lockTime
-    )
-
-    const spend = this._spend(signature[0], pubKey, secret, requiresSecret, period)
-    const spendInput = this._spendInput(spend, script)
-    const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
-    const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
-
-    return this.getMethod('sendRawTransaction')(rawClaimTx)
-  }
-
-  async _multisigSign (initiationTxHash, script, loanExpiration, to, from) {
-    const lockTime = loanExpiration + 100
-    const lockTimeHex = padHexStart(scriptNumEncode(lockTime).toString('hex'), 8)
-
-    const scriptPubKey = padHexStart(script)
-    const p2shAddress = pubKeyToAddress(scriptPubKey, this._network.name, 'scriptHash')
-    const sendScript = this.getMethod('createScript')(p2shAddress)
-
-    const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
-    const initiationTx = await this.getMethod('splitTransaction')(initiationTxRaw, true)
-    const voutIndex = initiationTx.outputs.findIndex((output) => output.script.toString('hex') === sendScript)
-
-    const txHashLE = Buffer.from(initiationTxHash, 'hex').reverse().toString('hex') // TX HASH IN LITTLE ENDIAN
-    const newTxInput = this.generateSigTxInput(txHashLE, voutIndex, script)
-    const newTx = this.generateRawTx(initiationTx, voutIndex, to, newTxInput, lockTimeHex)
-    const splitNewTx = await this.getMethod('splitTransaction')(newTx, true)
-    const outputScriptObj = await this.getMethod('serializeTransactionOutputs')(splitNewTx)
-    const outputScript = outputScriptObj.toString('hex')
-
-    const walletAddress = await this.getMethod('getWalletAddress')(from)
-
-    const signature = await this.getMethod('signP2SHTransaction')(
-      [[initiationTx, 0, script, 0]],
-      [walletAddress.derivationPath],
-      outputScript,
-      lockTime
-    )
-
-    return signature[0]
-  }
-
-  async _multisigSend (initiationTxHash, script, loanExpiration, signatureOne, signatureTwo, to) {
-    const lockTime = loanExpiration + 100
-    const lockTimeHex = padHexStart(scriptNumEncode(lockTime).toString('hex'), 8)
-
-    const scriptPubKey = padHexStart(script)
-    const p2shAddress = pubKeyToAddress(scriptPubKey, this._network.name, 'scriptHash')
-    const sendScript = this.getMethod('createScript')(p2shAddress)
-
-    const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
-    const initiationTx = await this.getMethod('splitTransaction')(initiationTxRaw, true)
-    const voutIndex = initiationTx.outputs.findIndex((output) => output.script.toString('hex') === sendScript)
-
-    const txHashLE = Buffer.from(initiationTxHash, 'hex').reverse().toString('hex') // TX HASH IN LITTLE ENDIAN
-
-    const spend = this._spendMultisig(signatureOne, signatureTwo)
-    const spendInput = this._spendInput(spend, script)
-
-    const rawClaimTxInput = this.generateRawTxInput(txHashLE, spendInput, voutIndex)
-    const rawClaimTx = this.generateRawTx(initiationTx, voutIndex, to, rawClaimTxInput, lockTimeHex)
-
-    return this.getMethod('sendRawTransaction')(rawClaimTx)
-  }
-
-  _spendMultisig (signatureOne, signatureTwo) {
-    const ifBranch = ['51', '00']
-
-    const signatureOneSignatureEncoded = signatureOne + '01'
-    const signatureOneSignaturePushDataOpcode = padHexStart((signatureOneSignatureEncoded.length / 2).toString(16))
-    const signatureTwoSignatureEncoded = signatureTwo + '01'
-    const signatureTwoSignaturePushDataOpcode = padHexStart((signatureTwoSignatureEncoded.length / 2).toString(16))
-
-    const bytecode = [
-      '00',
-      signatureOneSignaturePushDataOpcode,
-      signatureOneSignatureEncoded,
-      signatureTwoSignaturePushDataOpcode,
-      signatureTwoSignatureEncoded,
-      ...ifBranch
-    ]
-
-    return bytecode.join('')
-  }
-
-  _spend (signature, pubKey, secret, requiresSecret, period) {
-    var ifBranch
-    if (period === 'loanPeriod') {
-      ifBranch = ['51']
-    } else if (period === 'biddingPeriod') {
-      ifBranch = ['51', '00']
-    } else if (period === 'seizurePeriod' && requiresSecret) {
-      ifBranch = ['51', '00', '00']
-    } else if (period === 'seizurePeriod' && !requiresSecret) {
-      ifBranch = ['00', '00']
-    } else if (period === 'refundPeriod') {
-      ifBranch = ['00', '00', '00']
+    if (col.paymentVariantName === 'p2sh_p2wsh') {
+      // Adds the necessary push OP (PUSH34 (00 + witness script hash))
+      col.inputScript = bitcoin.script.compile([col.colPaymentVariants.p2sh_p2wsh.redeem.output])
+      tx.setInputScript(i, col.inputScript)
+    } else if (col.paymentVariantName === 'p2sh') {
+      tx.setInputScript(i, col.paymentWithInput.input)
     }
-
-    const encodedSecret = requiresSecret
-      ? [
-        padHexStart((secret.length / 2).toString(16)), // OP_PUSHDATA({secretLength})
-        secret
-      ]
-      : [] // OP_0
-
-    const signatureEncoded = signature + '01'
-    const signaturePushDataOpcode = padHexStart((signatureEncoded.length / 2).toString(16))
-    const pubKeyPushDataOpcode = padHexStart((pubKey.length / 2).toString(16))
-
-    const bytecode = [
-      signaturePushDataOpcode,
-      signatureEncoded,
-      pubKeyPushDataOpcode,
-      pubKey,
-      ...encodedSecret,
-      ...ifBranch
-    ]
-
-    return bytecode.join('')
-  }
-
-  _spendInput (spendBytecode, voutScript) {
-    const voutScriptLength = Buffer.from(padHexStart((voutScript.length / 2).toString(16)), 'hex').reverse().toString('hex')
-
-    const bytecode = [
-      spendBytecode,
-      (voutScript.length / 2) < 256 ? '4c' : '4d',
-      voutScriptLength,
-      voutScript
-    ]
-
-    return bytecode.join('')
-  }
-
-  generateSigTxInput (txHashLE, voutIndex, script) {
-    const inputTxOutput = Buffer.from(padHexStart(voutIndex.toString(16), 8), 'hex').reverse().toString('hex')
-    const scriptLength = Buffer.from(padHexStart((script.length / 2).toString(16)), 'hex').reverse().toString('hex')
-
-    return [
-      '01', // NUM INPUTS
-      txHashLE,
-      inputTxOutput, // INPUT TRANSACTION OUTPUT
-      (script.length / 2) < 253 ? '' : 'fd',
-      scriptLength,
-      (script.length / 2) >= 253 && (script.length / 2) < 256 ? '00' : '',
-      script,
-      '00000000' // SEQUENCE
-    ].join('')
-  }
-
-  generateRawTxInput (txHashLE, script, voutIndex) {
-    const inputTxOutput = Buffer.from(padHexStart(voutIndex.toString(16), 8), 'hex').reverse().toString('hex')
-    const scriptLength = Buffer.from(padHexStart((script.length / 2).toString(16)), 'hex').reverse().toString('hex')
-
-    return [
-      '01', // NUM INPUTS
-      txHashLE,
-      inputTxOutput,
-      (script.length / 2) < 253 ? '' : 'fd',
-      scriptLength,
-      (script.length / 2) >= 253 && (script.length / 2) < 256 ? '00' : '',
-      script,
-      '00000000' // SEQUENCE
-    ].join('')
-  }
-
-  generateRawTx (initiationTx, voutIndex, address, input, locktime) {
-    const output = initiationTx.outputs[voutIndex]
-    const value = parseInt(reverseBuffer(output.amount).toString('hex'), 16)
-    const fee = calculateFee(2, 2, 7)
-    const amount = value - fee
-    const amountLE = Buffer.from(padHexStart(amount.toString(16), 16), 'hex').reverse().toString('hex') // amount in little endian
-    const pubKeyHash = addressToPubKeyHash(address)
-
-    return [
-      '01000000', // VERSION
-      input,
-      '01', // NUM OUTPUTS
-      amountLE,
-      '19', // data size to be pushed
-      '76', // OP_DUP
-      'a9', // OP_HASH160
-      '14', // data size to be pushed
-      pubKeyHash, // <PUB_KEY_HASH>
-      '88', // OP_EQUALVERIFY
-      'ac', // OP_CHECKSIG
-      locktime // LOCKTIME
-    ].join('')
   }
 }
 
