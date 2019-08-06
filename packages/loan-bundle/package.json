@@ -17,7 +17,6 @@
   "author": "AtomicLoans <info@atomicloans.io>",
   "license": "MIT",
   "dependencies": {
-    "@atomicloans/bitcoin-collateral-agent-provider": "^0.2.44",
     "@atomicloans/bitcoin-collateral-provider": "^0.2.43",
     "@atomicloans/bitcoin-collateral-swap-provider": "^0.2.46",
     "@atomicloans/loan-client": "^0.2.45",

@@ -15,9 +15,9 @@ describe('Client methods without providers', () => {
     client = new LoanClient(btcClient)
   })
 
-  describe('createRefundableCollateralScript', () => {
+  describe('getCollateralOutput', () => {
     it('should throw NoProviderError', async () => {
-      return expect(client.collateral.createRefundableScript(1)).to.be.rejectedWith(/No provider provided/)
+      return expect(client.collateral.lock(1)).to.be.rejectedWith(/No provider provided/)
     })
   })
 })
