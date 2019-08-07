@@ -1,4 +1,4 @@
-# `@atomicloans/bitcoin-collateral-provider`
+# `@atomicloans/bitcoin-collateral-swap-provider`
 
 [![Build Status](https://travis-ci.org/AtomicLoans/chainabstractionlayer-loans.svg?branch=master)](https://travis-ci.org/AtomicLoans/chainabstractionlayer-loans)
 [![Coverage Status](https://coveralls.io/repos/github/AtomicLoans/chainabstractionlayer-loans/badge.svg?branch=add-travis)](https://coveralls.io/github/AtomicLoans/chainabstractionlayer-loans?branch=add-travis)
@@ -16,7 +16,7 @@ Query different blockchains with account management using a single and simple in
 ## Installation
 
 ```bash
-npm i @atomicloans/bitcoin-collateral-provider
+npm i @atomicloans/bitcoin-collateral-swap-provider
 ```
 
 
