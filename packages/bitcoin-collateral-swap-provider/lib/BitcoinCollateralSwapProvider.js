@@ -62,7 +62,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const { secretHashB1 }                              = secretHashes
     const { secretHashC1 }                              = secretHashes
     const { secretHashD1 }                              = secretHashes
-    const { swapExpiration, biddingExpiration }         = expirations
+    const { swapExpiration, liquidationExpiration }         = expirations
 
     const borrowerPubKeyHash = hash160(borrowerPubKey)
     const lenderPubKeyHash = hash160(lenderPubKey)
@@ -131,7 +131,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
           OPS.OP_3,
           OPS.OP_CHECKMULTISIG,
         OPS.OP_ELSE,
-          bitcoin.script.number.encode(biddingExpiration),
+          bitcoin.script.number.encode(liquidationExpiration),
           OPS.OP_CHECKLOCKTIMEVERIFY,
           OPS.OP_DROP,
           OPS.OP_DUP,
@@ -150,7 +150,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     let ifBranch
     if (period === 'claimPeriod') {
       ifBranch = [ OPS.OP_TRUE ]
-    } else if (period === 'biddingPeriod') {
+    } else if (period === 'liquidationPeriod') {
       ifBranch = [ OPS.OP_TRUE, OPS.OP_FALSE ]
     } else if (period === 'seizurePeriod') {
       ifBranch = [ OPS.OP_FALSE, OPS.OP_FALSE ]
@@ -162,7 +162,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     }
 
     const pubKeyParam = pubKey === null ? [] : [pubKey]
-    const multisigParams = period === 'biddingPeriod' ? [OPS.OP_0] : []
+    const multisigParams = period === 'liquidationPeriod' ? [OPS.OP_0] : []
 
     return bitcoin.script.compile([
       ...multisigParams,
@@ -324,8 +324,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
 
   async _multisigWrite (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
-    const { swapExpiration, biddingExpiration, seizureExpiration } = expirations
-    const period = 'biddingPeriod'
+    const { swapExpiration, liquidationExpiration, seizureExpiration } = expirations
+    const period = 'liquidationPeriod'
     const network = this._bitcoinJsNetwork
 
     const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : agentPubKey
@@ -365,7 +365,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
 
   async _multisigMove (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
-    const period = 'biddingPeriod'
+    const period = 'liquidationPeriod'
     const network = this._bitcoinJsNetwork
 
     const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
@@ -413,17 +413,17 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   buildColTx (period, col, expirations, to) {
-    const { swapExpiration, biddingExpiration } = expirations
+    const { swapExpiration, liquidationExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
     col.colVout.vSat = Math.floor(col.colVout.value * 1e8)
 
     const txb = new bitcoin.TransactionBuilder(network)
 
-    if (period === 'biddingPeriod') {
+    if (period === 'liquidationPeriod') {
       txb.setLockTime(swapExpiration)
     } else if (period === 'seizurePeriod') {
-      txb.setLockTime(biddingExpiration)
+      txb.setLockTime(liquidationExpiration)
     }
 
     col.prevOutScript = col.paymentVariant.output
@@ -441,7 +441,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   buildFullColTx (period, ref, sei, expirations, outputs) {
     if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
 
-    const { swapExpiration, biddingExpiration } = expirations
+    const { swapExpiration, liquidationExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
     ref.colVout.vSat = Math.floor(ref.colVout.value * 1e8)
@@ -449,10 +449,10 @@ export default class BitcoinCollateralSwapProvider extends Provider {
 
     const txb = new bitcoin.TransactionBuilder(network)
 
-    if (period === 'biddingPeriod') {
+    if (period === 'liquidationPeriod') {
       txb.setLockTime(swapExpiration)
     } else if (period === 'seizurePeriod') {
-      txb.setLockTime(biddingExpiration)
+      txb.setLockTime(liquidationExpiration)
     }
 
     ref.prevOutScript = ref.paymentVariant.output

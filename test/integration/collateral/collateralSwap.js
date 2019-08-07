@@ -113,7 +113,7 @@ function testCollateral (chain) {
   })
 
   it('should allow seizure', async () => {
-    const { lockTxHash, colParams } = await lockCollateral(chain, 'biddingExpiration')
+    const { lockTxHash, colParams } = await lockCollateral(chain, 'liquidationExpiration')
 
     const seizeParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
     const seizeTxHash = await chain.client.loan.collateralSwap.snatch(...seizeParams)
@@ -131,7 +131,7 @@ function testCollateral (chain) {
   })
 
   it('should allow reclaiming of refundable collateral', async () => {
-    const { lockTxHash, colParams } = await lockCollateral(chain, 'biddingExpiration')
+    const { lockTxHash, colParams } = await lockCollateral(chain, 'liquidationExpiration')
 
     const reclaimOneParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
     const reclaimTx = await chain.client.loan.collateralSwap.regain(...reclaimOneParams)
