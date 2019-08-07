@@ -39,11 +39,9 @@ const bitcoinLoanWithLedger = new LoanClient(bitcoin)
 bitcoin.loan = bitcoinLoanWithLedger
 bitcoin.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider('https://liquality.io/bitcointestnetrpc/', 'bitcoin', 'local321'))
 bitcoin.addProvider(new providers.bitcoin.BitcoinLedgerProvider({ network: bitcoinNetworks['bitcoin_testnet'], segwit: false }))
-bitcoin.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks['bitcoin_testnet'] }))
+bitcoin.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 
-bitcoin.loan.collateral.lock(
-  refundableValue, seizableValue, borrowerPubKey, lenderPubKey, secretHashA1, secretHashA2, secretHashB1, secretHashB2, loanExpiration, biddingExpiration, seizureExpiration
-  )
+bitcoin.loan.collateral.lock(values, pubKeys, secretHashes, expirations)
 ```
 
 
