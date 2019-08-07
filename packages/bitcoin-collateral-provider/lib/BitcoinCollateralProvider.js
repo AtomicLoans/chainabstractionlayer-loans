@@ -61,7 +61,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const { secretHashA1, secretHashA2 }                           = secretHashes
     const { secretHashB1, secretHashB2 }                           = secretHashes
     const { secretHashC1, secretHashC2 }                           = secretHashes
-    const { approveExpiration, biddingExpiration, seizureExpiration } = expirations
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
 
     const borrowerPubKeyHash = hash160(borrowerPubKey)
     const lenderPubKeyHash = hash160(lenderPubKey)
@@ -119,7 +119,7 @@ export default class BitcoinCollateralProvider extends Provider {
             OPS.OP_SHA256,
             Buffer.from(secretHashA1, 'hex'),
             OPS.OP_EQUALVERIFY,
-            bitcoin.script.number.encode(biddingExpiration),
+            bitcoin.script.number.encode(liquidationExpiration),
             OPS.OP_CHECKLOCKTIMEVERIFY,
             OPS.OP_DROP,
             OPS.OP_DUP,
@@ -148,7 +148,7 @@ export default class BitcoinCollateralProvider extends Provider {
     let ifBranch
     if (period === 'loanPeriod') {
       ifBranch = [ OPS.OP_TRUE ]
-    } else if (period === 'biddingPeriod') {
+    } else if (period === 'liquidationPeriod') {
       ifBranch = [ OPS.OP_TRUE, OPS.OP_FALSE ]
     } else if (period === 'seizurePeriod') {
       ifBranch = [ OPS.OP_TRUE, OPS.OP_FALSE, OPS.OP_FALSE ]
@@ -162,7 +162,7 @@ export default class BitcoinCollateralProvider extends Provider {
     }
 
     const pubKeyParam = pubKey === null ? [] : [pubKey]
-    const multisigParams = period === 'biddingPeriod' ? [OPS.OP_0] : []
+    const multisigParams = period === 'liquidationPeriod' ? [OPS.OP_0] : []
 
     return bitcoin.script.compile([
       ...multisigParams,
@@ -316,8 +316,8 @@ export default class BitcoinCollateralProvider extends Provider {
 
   async _multisigSign (initiationTxHash, pubKeys, secretHashes, expirations, party, outputs) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
-    const { approveExpiration, biddingExpiration, seizureExpiration } = expirations
-    const period = 'biddingPeriod'
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
+    const period = 'liquidationPeriod'
     const network = this._bitcoinJsNetwork
 
     const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : agentPubKey
@@ -357,7 +357,7 @@ export default class BitcoinCollateralProvider extends Provider {
 
   async _multisigSend (initiationTxHash, sigs, pubKeys, secretHashes, expirations, outputs) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
-    const period = 'biddingPeriod'
+    const period = 'liquidationPeriod'
     const network = this._bitcoinJsNetwork
 
     const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
@@ -405,17 +405,17 @@ export default class BitcoinCollateralProvider extends Provider {
   }
 
   buildColTx (period, col, expirations, to) {
-    const { approveExpiration, biddingExpiration, seizureExpiration } = expirations
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
     col.colVout.vSat = col.colVout.value * 1e8
 
     const txb = new bitcoin.TransactionBuilder(network)
 
-    if (period === 'biddingPeriod') {
+    if (period === 'liquidationPeriod') {
       txb.setLockTime(approveExpiration)
     } else if (period === 'seizurePeriod') {
-      txb.setLockTime(biddingExpiration)
+      txb.setLockTime(liquidationExpiration)
     } else if (period === 'refundPeriod') {
       txb.setLockTime(seizureExpiration)
     }
@@ -435,7 +435,7 @@ export default class BitcoinCollateralProvider extends Provider {
   buildFullColTx (period, ref, sei, expirations, outputs) {
     if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
 
-    const { approveExpiration, biddingExpiration, seizureExpiration } = expirations
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
     ref.colVout.vSat = ref.colVout.value * 1e8
@@ -443,10 +443,10 @@ export default class BitcoinCollateralProvider extends Provider {
 
     const txb = new bitcoin.TransactionBuilder(network)
 
-    if (period === 'biddingPeriod') {
+    if (period === 'liquidationPeriod') {
       txb.setLockTime(approveExpiration)
     } else if (period === 'seizurePeriod') {
-      txb.setLockTime(biddingExpiration)
+      txb.setLockTime(liquidationExpiration)
     } else if (period === 'refundPeriod') {
       txb.setLockTime(seizureExpiration)
     }

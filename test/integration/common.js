@@ -156,10 +156,10 @@ async function getCollateralParams (chain) {
 
   const approveExpiration     = parseInt(Date.now() / 1000) + parseInt(Math.random() * 1000000)
   const swapExpiration     = parseInt(Date.now() / 1000) + parseInt(Math.random() * 1500000)
-  const biddingExpiration  = parseInt(Date.now() / 1000) + parseInt(Math.random() * 2000000)
+  const liquidationExpiration  = parseInt(Date.now() / 1000) + parseInt(Math.random() * 2000000)
   const seizureExpiration = parseInt(Date.now() / 1000) + parseInt(Math.random() * 3000000)
 
-  const expirations = { approveExpiration, swapExpiration, biddingExpiration, seizureExpiration }
+  const expirations = { approveExpiration, swapExpiration, liquidationExpiration, seizureExpiration }
 
   return {
     values,

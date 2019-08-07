@@ -136,7 +136,7 @@ function testCollateral (chain) {
   })
 
   it('should allow seizure', async () => {
-    const { lockTxHash, colParams } = await lockCollateral(chain, 'biddingExpiration')
+    const { lockTxHash, colParams } = await lockCollateral(chain, 'liquidationExpiration')
 
     const seizeParams = [lockTxHash, colParams.pubKeys, colParams.secrets.secretA1, colParams.secretHashes, colParams.expirations]
     const seizeTxHash = await chain.client.loan.collateral.seize(...seizeParams)
@@ -153,7 +153,7 @@ function testCollateral (chain) {
   })
 
   it('should fail seizing if incorrect secret provided', async () => {
-    const { lockTxHash, colParams } = await lockCollateral(chain, 'biddingExpiration')
+    const { lockTxHash, colParams } = await lockCollateral(chain, 'liquidationExpiration')
 
     const seizeParams = [lockTxHash, colParams.pubKeys, colParams.secrets.secretB1, colParams.secretHashes, colParams.expirations]
     expect(chain.client.loan.collateral.seize(...seizeParams)).to.be.rejected

@@ -218,7 +218,7 @@ function testCollateral (chain) {
 
     const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
     colParams.expirations.approveExpiration = curTimeExpiration
-    colParams.expirations.biddingExpiration = curTimeExpiration
+    colParams.expirations.liquidationExpiration = curTimeExpiration
     colParams.expirations.swapExpiration = curTimeExpiration
 
     const lockTxHash = await chain.client.loan.collateral.lock(...lockParams)
