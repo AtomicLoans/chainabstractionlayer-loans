@@ -2,7 +2,7 @@
   "name": "@atomicloans/bitcoin-collateral-swap-provider",
   "umdName": "BitcoinCollateralSwapProvider",
   "umdExport": "default",
-  "version": "0.2.48",
+  "version": "0.2.49",
   "description": "",
   "module": "lib/index.js",
   "main": "dist/index.cjs.js",
