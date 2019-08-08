@@ -58,9 +58,9 @@ export default class BitcoinCollateralProvider extends Provider {
 
   getCollateralOutput (pubKeys, secretHashes, expirations, seizable) {
     const { borrowerPubKey, lenderPubKey, agentPubKey }            = pubKeys
-    const { secretHashA1, secretHashA2 }                           = secretHashes
-    const { secretHashB1, secretHashB2 }                           = secretHashes
-    const { secretHashC1, secretHashC2 }                           = secretHashes
+    const { secretHashA1 }                                         = secretHashes
+    const { secretHashB1 }                                         = secretHashes
+    const { secretHashC1 }                                         = secretHashes
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
 
     const borrowerPubKeyHash = hash160(borrowerPubKey)
@@ -310,6 +310,8 @@ export default class BitcoinCollateralProvider extends Provider {
 
     this.finalizeTx(tx, ref, 0)
     this.finalizeTx(tx, sei, 1)
+
+    console.log(tx.toHex())
 
     return this.getMethod('sendRawTransaction')(tx.toHex())
   }
