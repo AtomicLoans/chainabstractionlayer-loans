@@ -14,6 +14,8 @@ import { version } from '../package.json'
 
 const OPS = bitcoin.script.OPS
 
+console.warn = () => {} // Silence the Deprecation Warning
+
 export default class BitcoinCollateralProvider extends Provider {
   constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2sh_p2wsh', address: 'p2sh_p2wpkh' }) {
     super()
@@ -161,7 +163,7 @@ export default class BitcoinCollateralProvider extends Provider {
       secretParams.unshift(secret === null ? OPS.OP_FALSE : Buffer.from(secret, 'hex'))
     }
 
-    const pubKeyParam = pubKey === null ? [] : [pubKey]
+    const pubKeyParam = pubKey === null ? [] : [Buffer.from(pubKey, 'hex')]
     const multisigParams = period === 'liquidationPeriod' ? [OPS.OP_0] : []
 
     return bitcoin.script.compile([
@@ -310,8 +312,6 @@ export default class BitcoinCollateralProvider extends Provider {
 
     this.finalizeTx(tx, ref, 0)
     this.finalizeTx(tx, sei, 1)
-
-    console.log(tx.toHex())
 
     return this.getMethod('sendRawTransaction')(tx.toHex())
   }
@@ -478,7 +478,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const needsWitness = col.paymentVariantName === 'p2wsh' || col.paymentVariantName === 'p2sh_p2wsh'
 
     if (needsWitness) {
-      col.sigHash = tx.hashForWitnessV0(i, col.colPaymentVariants.p2wsh.redeem.output, col.colVout.vSat, bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
+      col.sigHash = tx.hashForWitnessV0(i, col.colPaymentVariants.p2wsh.redeem.output, parseInt(col.colVout.vSat), bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
     } else {
       col.sigHash = tx.hashForSignature(i, col.paymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
     }

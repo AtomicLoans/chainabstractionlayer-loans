@@ -58,11 +58,12 @@ export default class BitcoinCollateralSwapProvider extends Provider {
 
   getCollateralOutput (pubKeys, secretHashes, expirations, seizable) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const { liquidatorPubKeyHash }                      = pubKeys
     const { secretHashA1 }                              = secretHashes
     const { secretHashB1 }                              = secretHashes
     const { secretHashC1 }                              = secretHashes
     const { secretHashD1 }                              = secretHashes
-    const { swapExpiration, liquidationExpiration }         = expirations
+    const { swapExpiration, liquidationExpiration }     = expirations
 
     const borrowerPubKeyHash = hash160(borrowerPubKey)
     const lenderPubKeyHash = hash160(lenderPubKey)
@@ -116,7 +117,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
         OPS.OP_EQUALVERIFY,
         OPS.OP_DUP,
         OPS.OP_HASH160,
-        Buffer.from(borrowerPubKeyHash, 'hex'),
+        Buffer.from(liquidatorPubKeyHash, 'hex'),
         OPS.OP_EQUALVERIFY,
         OPS.OP_CHECKSIG,
       OPS.OP_ELSE,
@@ -277,9 +278,9 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   async _refundAll (initiationTxHash, pubKeys, secrets, secretHashes, expirations, period) {
-    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const { borrowerPubKey, lenderPubKey, agentPubKey, liquidatorPubKey } = pubKeys
     const network = this._bitcoinJsNetwork
-    const pubKey = (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
+    const pubKey = (period === 'claimPeriod') ? liquidatorPubKey : (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
     const wif = await this.getMethod('dumpPrivKey')(address)
     const wallet = bitcoin.ECPair.fromWIF(wif, network)
