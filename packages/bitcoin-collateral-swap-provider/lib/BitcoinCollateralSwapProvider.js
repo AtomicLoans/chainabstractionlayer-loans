@@ -162,7 +162,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
       secretParams.unshift(secret === null ? OPS.OP_FALSE : Buffer.from(secret, 'hex'))
     }
 
-    const pubKeyParam = pubKey === null ? [] : [pubKey]
+    const pubKeyParam = pubKey === null ? [] : [Buffer.from(pubKey, 'hex')]
     const multisigParams = period === 'liquidationPeriod' ? [OPS.OP_0] : []
 
     return bitcoin.script.compile([
@@ -411,6 +411,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
         col.colVout = vout
       }
     }
+    if (col.colVout === undefined) { throw new Error('Could not find transaction based on redeem script') }
   }
 
   buildColTx (period, col, expirations, to) {

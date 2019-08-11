@@ -410,7 +410,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    col.colVout.vSat = col.colVout.value * 1e8
+    col.colVout.vSat = Math.floor(col.colVout.value * 1e8)
 
     const txb = new bitcoin.TransactionBuilder(network)
 
@@ -440,17 +440,17 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    ref.colVout.vSat = ref.colVout.value * 1e8
-    sei.colVout.vSat = sei.colVout.value * 1e8
+    ref.colVout.vSat = Math.floor(ref.colVout.value * 1e8)
+    sei.colVout.vSat = Math.floor(sei.colVout.value * 1e8)
 
     const txb = new bitcoin.TransactionBuilder(network)
 
     if (period === 'liquidationPeriod') {
-      txb.setLockTime(approveExpiration)
+      txb.setLockTime(parseInt(approveExpiration))
     } else if (period === 'seizurePeriod') {
-      txb.setLockTime(liquidationExpiration)
+      txb.setLockTime(parseInt(liquidationExpiration))
     } else if (period === 'refundPeriod') {
-      txb.setLockTime(seizureExpiration)
+      txb.setLockTime(parseInt(seizureExpiration))
     }
 
     ref.prevOutScript = ref.paymentVariant.output
@@ -478,7 +478,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const needsWitness = col.paymentVariantName === 'p2wsh' || col.paymentVariantName === 'p2sh_p2wsh'
 
     if (needsWitness) {
-      col.sigHash = tx.hashForWitnessV0(i, col.colPaymentVariants.p2wsh.redeem.output, parseInt(col.colVout.vSat), bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
+      col.sigHash = tx.hashForWitnessV0(i, col.colPaymentVariants.p2wsh.redeem.output, col.colVout.vSat, bitcoin.Transaction.SIGHASH_ALL) // AMOUNT NEEDS TO BE PREVOUT AMOUNT
     } else {
       col.sigHash = tx.hashForSignature(i, col.paymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
     }
