@@ -14,6 +14,8 @@ import { version } from '../package.json'
 
 const OPS = bitcoin.script.OPS
 
+console.warn = () => {} // Silence the Deprecation Warning
+
 export default class BitcoinCollateralProvider extends Provider {
   constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2sh_p2wsh', address: 'p2sh_p2wpkh' }) {
     super()
@@ -58,9 +60,9 @@ export default class BitcoinCollateralProvider extends Provider {
 
   getCollateralOutput (pubKeys, secretHashes, expirations, seizable) {
     const { borrowerPubKey, lenderPubKey, agentPubKey }            = pubKeys
-    const { secretHashA1, secretHashA2 }                           = secretHashes
-    const { secretHashB1, secretHashB2 }                           = secretHashes
-    const { secretHashC1, secretHashC2 }                           = secretHashes
+    const { secretHashA1 }                                         = secretHashes
+    const { secretHashB1 }                                         = secretHashes
+    const { secretHashC1 }                                         = secretHashes
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
 
     const borrowerPubKeyHash = hash160(borrowerPubKey)
@@ -161,7 +163,7 @@ export default class BitcoinCollateralProvider extends Provider {
       secretParams.unshift(secret === null ? OPS.OP_FALSE : Buffer.from(secret, 'hex'))
     }
 
-    const pubKeyParam = pubKey === null ? [] : [pubKey]
+    const pubKeyParam = pubKey === null ? [] : [Buffer.from(pubKey, 'hex')]
     const multisigParams = period === 'liquidationPeriod' ? [OPS.OP_0] : []
 
     return bitcoin.script.compile([
@@ -408,7 +410,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    col.colVout.vSat = col.colVout.value * 1e8
+    col.colVout.vSat = Math.floor(col.colVout.value * 1e8)
 
     const txb = new bitcoin.TransactionBuilder(network)
 
@@ -438,17 +440,17 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    ref.colVout.vSat = ref.colVout.value * 1e8
-    sei.colVout.vSat = sei.colVout.value * 1e8
+    ref.colVout.vSat = Math.floor(ref.colVout.value * 1e8)
+    sei.colVout.vSat = Math.floor(sei.colVout.value * 1e8)
 
     const txb = new bitcoin.TransactionBuilder(network)
 
     if (period === 'liquidationPeriod') {
-      txb.setLockTime(approveExpiration)
+      txb.setLockTime(parseInt(approveExpiration))
     } else if (period === 'seizurePeriod') {
-      txb.setLockTime(liquidationExpiration)
+      txb.setLockTime(parseInt(liquidationExpiration))
     } else if (period === 'refundPeriod') {
-      txb.setLockTime(seizureExpiration)
+      txb.setLockTime(parseInt(seizureExpiration))
     }
 
     ref.prevOutScript = ref.paymentVariant.output

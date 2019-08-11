@@ -6,7 +6,7 @@ import MetaMaskConnector from 'node-metamask'
 import { Client, Provider, providers, crypto } from '@mblackmblack/bundle'
 import { LoanClient, providers as lproviders } from '../../packages/loan-bundle/lib'
 import { sleep } from '@liquality/utils'
-import { sha256 } from '@liquality/crypto'
+import { sha256, hash160 } from '@liquality/crypto'
 import { findLast } from 'lodash'
 import config from './config'
 
@@ -145,12 +145,13 @@ async function getCollateralParams (chain) {
   const agentAddress = agentPubKeyAndAddress.address
   const agentPubKey = agentPubKeyAndAddress.pubKey
 
-  const bidderPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
-  const bidderAddress = bidderPubKeyAndAddress.address
-  const bidderPubKey = bidderPubKeyAndAddress.pubKey
+  const liquidatorPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
+  const liquidatorAddress = liquidatorPubKeyAndAddress.address
+  const liquidatorPubKey = liquidatorPubKeyAndAddress.pubKey
+  const liquidatorPubKeyHash = hash160(liquidatorPubKey)
 
-  const addresses = { borrowerAddress, lenderAddress, agentAddress, bidderAddress }
-  const pubKeys = { borrowerPubKey, lenderPubKey, agentPubKey, bidderPubKey }
+  const addresses = { borrowerAddress, lenderAddress, agentAddress, liquidatorAddress }
+  const pubKeys = { borrowerPubKey, lenderPubKey, agentPubKey, liquidatorPubKeyHash, liquidatorPubKey }
 
   const { secrets, secretHashes } = await getCollateralSecretParams(chain)
 
