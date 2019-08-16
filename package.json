@@ -104,7 +104,7 @@
   "dependencies": {
     "@liquality/bitcoin-utils": "^0.2.11",
     "@liquality/bundle": "^0.2.11",
-    "@liquality/crypto": "^0.2.11",
+    "@liquality/crypto": "^0.3.0",
     "@liquality/utils": "^0.2.11",
     "@mblackmblack/bundle": "^0.2.12",
     "bitcoinjs-lib": "^5.1.2"
