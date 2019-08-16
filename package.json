@@ -102,7 +102,7 @@
     "test"
   ],
   "dependencies": {
-    "@liquality/bitcoin-utils": "^0.2.11",
+    "@liquality/bitcoin-utils": "^0.3.0",
     "@liquality/bundle": "^0.2.11",
     "@liquality/crypto": "^0.2.11",
     "@liquality/utils": "^0.2.11",
