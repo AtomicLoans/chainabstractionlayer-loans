@@ -24,7 +24,7 @@
     "@liquality/bitcoin-utils": "^0.2.11",
     "@liquality/crypto": "^0.2.11",
     "@liquality/provider": "^0.2.11",
-    "@liquality/utils": "^0.2.11",
+    "@liquality/utils": "^0.3.0",
     "bignumber.js": "^9.0.0"
   },
   "engines": {
