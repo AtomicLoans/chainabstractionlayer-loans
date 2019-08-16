@@ -20,7 +20,7 @@
   "dependencies": {
     "@babel/runtime": "^7.4.3",
     "@liquality/client": "^0.2.11",
-    "@liquality/crypto": "^0.2.11",
+    "@liquality/crypto": "^0.3.0",
     "@liquality/errors": "^0.2.11",
     "@liquality/schema": "^0.2.11",
     "ajv": "^6.10.0",
