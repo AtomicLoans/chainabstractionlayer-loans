@@ -3,7 +3,7 @@ import * as bitcoin from 'bitcoinjs-lib'
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import MetaMaskConnector from 'node-metamask'
-import { Client, Provider, providers, crypto } from '@mblackmblack/bundle'
+import { Client, Provider, providers, crypto } from '@liquality/bundle'
 import { LoanClient, providers as lproviders } from '../../packages/loan-bundle/lib'
 import { sleep } from '@liquality/utils'
 import { sha256, hash160 } from '@liquality/crypto'
@@ -16,13 +16,14 @@ const metaMaskConnector = new MetaMaskConnector({ port: config.ethereum.metaMask
 
 const bitcoinNetworks = providers.bitcoin.networks
 const bitcoinWithLedger = new Client()
-bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
+bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
 bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinLedgerProvider({ network: bitcoinNetworks[config.bitcoin.network], segwit: false }))
 
 const bitcoinWithNode = new Client()
 const bitcoinLoanWithNode = new LoanClient(bitcoinWithNode)
 bitcoinWithNode.loan = bitcoinLoanWithNode
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
+bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinNodeWalletProvider(bitcoinNetworks[config.bitcoin.network], config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password, 'bech32'))
 bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 
