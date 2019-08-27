@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-expressions */
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { chains, getUnusedPubKey, getCollateralParams } from '../common'
+import { chains, getUnusedPubKey, getCollateralParams, importAddresses } from '../common'
 import config from '../config'
 import { hash160 } from '@liquality/crypto'
 import { pubKeyToAddress } from '@liquality/bitcoin-utils'
@@ -64,12 +64,13 @@ function testCollateral (chain) {
   it('should allow multisig signing', async () => {
     const { lockTxHash, colParams } = await lockCollateral(chain, 'approveExpiration')
 
-    const to = await chain.client.getMethod('getNewAddress')('p2sh-segwit')
+    const { address: to } = await chain.client.getMethod('getUnusedAddress')()
+
     const multisigParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
     const { refundableSig, seizableSig } = await chain.client.loan.collateral.multisigSign(...multisigParams)
 
-    expect(refundableSig.startsWith('30')).to.equal(true)
-    expect(seizableSig.startsWith('30')).to.equal(true)
+    expect(refundableSig.toString('hex').startsWith('30')).to.equal(true)
+    expect(seizableSig.toString('hex').startsWith('30')).to.equal(true)
 
     expect(71 <= Buffer.from(refundableSig, 'hex').length <= 72).to.equal(true)
     expect(71 <= Buffer.from(seizableSig, 'hex').length <= 72).to.equal(true)
@@ -78,7 +79,7 @@ function testCollateral (chain) {
   it('should allow multisig signing and sending', async () => {
     const { lockTxHash, colParams } = await lockCollateral(chain, 'approveExpiration')
 
-    const to = await chain.client.getMethod('getNewAddress')()
+    const { address: to } = await chain.client.getMethod('getUnusedAddress')()
 
     const multisigBorrowerParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
     const borrowerSigs = await chain.client.loan.collateral.multisigSign(...multisigBorrowerParams)
@@ -108,7 +109,7 @@ function testCollateral (chain) {
   it('should allow multisig signing and sending', async () => {
     const { lockTxHash, colParams } = await lockCollateral(chain, 'approveExpiration')
 
-    const to = await chain.client.getMethod('getNewAddress')('p2sh-segwit')
+    const { address: to } = await chain.client.getMethod('getUnusedAddress')()
 
     const multisigBorrowerParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
     const borrowerSigs = await chain.client.loan.collateral.multisigSign(...multisigBorrowerParams)
@@ -218,6 +219,14 @@ function getVinRedeemScript (vin) {
 
 describe('Collateral Flow', function () {
   this.timeout(config.timeout)
+
+  describe('Bitcoin - Ledger', () => {
+    before(async function() {
+      await importAddresses(chains.bitcoinWithLedger)
+    })
+
+    testCollateral(chains.bitcoinWithLedger)
+  })
 
   describe('Bitcoin - Node', () => {
     testCollateral(chains.bitcoinWithNode)

@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-expressions */
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { chains, getUnusedPubKey, getCollateralParams } from '../common'
+import { chains, getUnusedPubKey, getCollateralParams, importAddresses } from '../common'
 import config from '../config'
 import { hash160 } from '@liquality/crypto'
 import { pubKeyToAddress } from '@liquality/bitcoin-utils'
@@ -340,6 +340,14 @@ function getVinRedeemScript (vin) {
 
 describe('Collateral Liquidation Flow', function () {
   this.timeout(config.timeout)
+
+  describe('Bitcoin - Ledger', () => {
+    before(async function() {
+      await importAddresses(chains.bitcoinWithLedger)
+    })
+
+    testCollateral(chains.bitcoinWithLedger)
+  })
 
   describe('Bitcoin - Node', () => {
     testCollateral(chains.bitcoinWithNode)
