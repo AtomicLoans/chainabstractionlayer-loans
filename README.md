@@ -19,7 +19,6 @@ This repository was built as an extension to the [ChainAbstractionLayer](https:/
 
 |Package|Version|
 |---|---|
-|[@atomicloans/bitcoin-collateral-agent-provider](./packages/bitcoin-collateral-agent-provider)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-agent-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-agent-provider)|
 |[@atomicloans/bitcoin-collateral-provider](./packages/bitcoin-collateral-provider)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-provider)|
 |[@atomicloans/bitcoin-collateral-swap-provider](./packages/bitcoin-collateral-swap-provider)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/bitcoin-collateral-swap-provider.svg)](https://npmjs.com/package/@atomicloans/bitcoin-collateral-swap-provider)|
 |[@atomicloans/loan-bundle](./packages/loan-bundle)|[![ChainAbstractionLayer-Loans](https://img.shields.io/npm/v/@atomicloans/loan-bundle.svg)](https://npmjs.com/package/@atomicloans/loan-bundle)|
