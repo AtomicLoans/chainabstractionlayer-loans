@@ -15,7 +15,7 @@ import { version } from '../package.json'
 const OPS = bitcoin.script.OPS
 
 export default class BitcoinCollateralSwapProvider extends Provider {
-  constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2sh_p2wsh', address: 'p2sh_p2wpkh' }) {
+  constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2wsh', address: 'p2wpkh' }) {
     super()
     this._network = chain.network
     if (!['p2wsh', 'p2sh_p2wsh', 'p2sh'].includes(mode.script)) {
@@ -193,8 +193,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   async init (values, pubKeys, secretHashes, expirations) {
     const { refundableValue, seizableValue } = values
 
-    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
-    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
     const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
     const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
@@ -206,8 +206,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   async getInitAddresses (pubKeys, secretHashes, expirations) {
-    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
-    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
     const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
     const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
@@ -252,8 +252,6 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const network = this._bitcoinJsNetwork
     const pubKey = seizable ? lenderPubKey : borrowerPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
-    const wif = await this.getMethod('dumpPrivKey')(address)
-    const wallet = bitcoin.ECPair.fromWIF(wif, network)
 
     const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
     const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
@@ -268,7 +266,10 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const tx = this.buildColTx(period, col, expirations, address)
 
     this.setHashForSigOrWit(tx, col, 0)
-    const colSig = bitcoin.script.signature.encode(wallet.sign(col.sigHash), bitcoin.Transaction.SIGHASH_ALL)
+
+    const index = seizable ? 1 : 0
+    const colSig = await this.createSig(initiationTxRaw, tx, address, col, expirations, period, index)
+
     col.colInput = this.getCollateralInput(colSig, period, [], pubKey)
 
     this.setHashForSigOrWit(tx, col, 0)
@@ -282,8 +283,6 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const network = this._bitcoinJsNetwork
     const pubKey = (period === 'claimPeriod') ? liquidatorPubKey : (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
-    const wif = await this.getMethod('dumpPrivKey')(address)
-    const wallet = bitcoin.ECPair.fromWIF(wif, network)
 
     const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
     const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
@@ -291,8 +290,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     let ref = {} // Refundable Object
     let sei = {} // Seizable Object
 
-    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
-    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
     ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
     sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
@@ -308,8 +307,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
 
-    const refundableSig = bitcoin.script.signature.encode(wallet.sign(ref.sigHash), bitcoin.Transaction.SIGHASH_ALL)
-    const seizableSig = bitcoin.script.signature.encode(wallet.sign(sei.sigHash), bitcoin.Transaction.SIGHASH_ALL)
+    const { refundableSig, seizableSig } = await this.createSigs(initiationTxRaw, tx, address, ref, sei, expirations, period)
 
     ref.colInput = this.getCollateralInput(refundableSig, period, secrets, pubKey)
     sei.colInput = this.getCollateralInput(seizableSig, period, secrets, pubKey)
@@ -325,15 +323,11 @@ export default class BitcoinCollateralSwapProvider extends Provider {
 
   async _multisigWrite (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
     const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
-    const { swapExpiration, liquidationExpiration, seizureExpiration } = expirations
     const period = 'liquidationPeriod'
     const network = this._bitcoinJsNetwork
 
     const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : agentPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
-
-    const wif = await this.getMethod('dumpPrivKey')(address)
-    const wallet = bitcoin.ECPair.fromWIF(wif, network)
 
     const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
     const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
@@ -341,8 +335,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     let ref = {} // Refundable Object
     let sei = {} // Seizable Object
 
-    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
-    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
     ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
     sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
@@ -358,10 +352,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
 
-    const refundableSig = (bitcoin.script.signature.encode(wallet.sign(ref.sigHash), bitcoin.Transaction.SIGHASH_ALL)).toString('hex')
-    const seizableSig = (bitcoin.script.signature.encode(wallet.sign(sei.sigHash), bitcoin.Transaction.SIGHASH_ALL)).toString('hex')
-
-    return { refundableSig, seizableSig }
+    return this.createSigs(initiationTxRaw, tx, address, ref, sei, expirations, period)
   }
 
   async _multisigMove (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
@@ -375,8 +366,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     let ref = {} // Refundable Object
     let sei = {} // Seizable Object
 
-    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
-    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
     ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
     sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
@@ -486,6 +477,63 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     } else {
       col.sigHash = tx.hashForSignature(i, col.paymentVariant.redeem.output, bitcoin.Transaction.SIGHASH_ALL)
     }
+  }
+
+  async createSig (initiationTxRaw, tx, address, col, expirations, period, index = 0) {
+    const isSegwit = col.paymentVariantName === 'p2wsh' || col.paymentVariantName === 'p2sh_p2wsh'
+
+    const { swapExpiration, liquidationExpiration } = expirations
+
+    let lockTime = 0
+    if (period === 'liquidationPeriod') {
+      lockTime = swapExpiration
+    } else if (period === 'seizurePeriod') {
+      lockTime = liquidationExpiration
+    }
+
+    return this.getMethod('signP2SHTransaction')(
+      initiationTxRaw, // TODO: Why raw? can't it be a bitcoinjs-lib TX like the next one?
+      tx,
+      address,
+      col.colVout,
+      isSegwit ? col.colPaymentVariants.p2wsh.redeem.output : col.colPaymentVariants.p2sh.redeem.output,
+      lockTime,
+      isSegwit,
+      index
+    )
+  }
+
+  async createSigs (initiationTxRaw, tx, address, ref, sei, expirations, period) {
+    const isSegwit = ref.paymentVariantName === 'p2wsh' || ref.paymentVariantName === 'p2sh_p2wsh'
+
+    const { swapExpiration, liquidationExpiration } = expirations
+
+    let lockTime = 0
+    if (period === 'liquidationPeriod') {
+      lockTime = swapExpiration
+    } else if (period === 'seizurePeriod') {
+      lockTime = liquidationExpiration
+    }
+
+    const refOutputScript = isSegwit ? ref.colPaymentVariants.p2wsh.redeem.output : ref.colPaymentVariants.p2sh.redeem.output
+    const seiOutputScript = isSegwit ? sei.colPaymentVariants.p2wsh.redeem.output : sei.colPaymentVariants.p2sh.redeem.output
+
+    // inputs consists of [{ inputTxHex, index, vout, outputScript }]
+    const signatures = await this.getMethod('signBatchP2SHTransaction')(
+      [
+        { inputTxHex: initiationTxRaw, index: 0, vout: ref.colVout, outputScript: refOutputScript },
+        { inputTxHex: initiationTxRaw, index: 1, vout: sei.colVout, outputScript: seiOutputScript }
+      ],
+      [ address, address ],
+      tx,
+      lockTime,
+      isSegwit
+    )
+
+    const refundableSig = signatures[0]
+    const seizableSig = signatures[1]
+
+    return { refundableSig, seizableSig }
   }
 
   finalizeTx (tx, col, i) {

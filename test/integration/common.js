@@ -3,7 +3,7 @@ import * as bitcoin from 'bitcoinjs-lib'
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import MetaMaskConnector from 'node-metamask'
-import { Client, Provider, providers, crypto } from '@mblackmblack/bundle'
+import { Client, Provider, providers, crypto } from '@liquality/bundle'
 import { LoanClient, providers as lproviders } from '../../packages/loan-bundle/lib'
 import { sleep } from '@liquality/utils'
 import { sha256, hash160 } from '@liquality/crypto'
@@ -15,14 +15,20 @@ chai.use(chaiAsPromised)
 const metaMaskConnector = new MetaMaskConnector({ port: config.ethereum.metaMaskConnector.port })
 
 const bitcoinNetworks = providers.bitcoin.networks
+
 const bitcoinWithLedger = new Client()
-bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinBitcoreRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
+const bitcoinLoanWithLedger = new LoanClient(bitcoinWithLedger)
+bitcoinWithLedger.loan = bitcoinLoanWithLedger
+bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
 bitcoinWithLedger.addProvider(new providers.bitcoin.BitcoinLedgerProvider({ network: bitcoinNetworks[config.bitcoin.network], segwit: false }))
+bitcoinWithLedger.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2wsh', address: 'p2wpkh'}))
+bitcoinWithLedger.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2wsh', address: 'p2wpkh'}))
 
 const bitcoinWithNode = new Client()
 const bitcoinLoanWithNode = new LoanClient(bitcoinWithNode)
 bitcoinWithNode.loan = bitcoinLoanWithNode
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
+bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinNodeWalletProvider(bitcoinNetworks[config.bitcoin.network], config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password, 'bech32'))
 bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 
@@ -77,21 +83,21 @@ const chains = {
 }
 
 async function getCollateralSecretParams (chain) {
-  const secretA1 = await chain.client.swap.generateSecret('secretA1')
-  const secretA2 = await chain.client.swap.generateSecret('secretA2')
-  const secretA3 = await chain.client.swap.generateSecret('secretA3')
-  const secretA4 = await chain.client.swap.generateSecret('secretA4')
-  const secretB1 = await chain.client.swap.generateSecret('secretB1')
-  const secretB2 = await chain.client.swap.generateSecret('secretB2')
-  const secretB3 = await chain.client.swap.generateSecret('secretB3')
-  const secretB4 = await chain.client.swap.generateSecret('secretB4')
-  const secretC1 = await chain.client.swap.generateSecret('secretC1')
-  const secretC2 = await chain.client.swap.generateSecret('secretC2')
-  const secretC3 = await chain.client.swap.generateSecret('secretC3')
-  const secretC4 = await chain.client.swap.generateSecret('secretC4')
-  const secretD1 = await chain.client.swap.generateSecret('secretD1')
-  const secretD2 = await chain.client.swap.generateSecret('secretD2')
-  const secretD3 = await chain.client.swap.generateSecret('secretD3')
+  const secretA1 = await chains.bitcoinWithNode.client.swap.generateSecret('secretA1')
+  const secretA2 = await chains.bitcoinWithNode.client.swap.generateSecret('secretA2')
+  const secretA3 = await chains.bitcoinWithNode.client.swap.generateSecret('secretA3')
+  const secretA4 = await chains.bitcoinWithNode.client.swap.generateSecret('secretA4')
+  const secretB1 = await chains.bitcoinWithNode.client.swap.generateSecret('secretB1')
+  const secretB2 = await chains.bitcoinWithNode.client.swap.generateSecret('secretB2')
+  const secretB3 = await chains.bitcoinWithNode.client.swap.generateSecret('secretB3')
+  const secretB4 = await chains.bitcoinWithNode.client.swap.generateSecret('secretB4')
+  const secretC1 = await chains.bitcoinWithNode.client.swap.generateSecret('secretC1')
+  const secretC2 = await chains.bitcoinWithNode.client.swap.generateSecret('secretC2')
+  const secretC3 = await chains.bitcoinWithNode.client.swap.generateSecret('secretC3')
+  const secretC4 = await chains.bitcoinWithNode.client.swap.generateSecret('secretC4')
+  const secretD1 = await chains.bitcoinWithNode.client.swap.generateSecret('secretD1')
+  const secretD2 = await chains.bitcoinWithNode.client.swap.generateSecret('secretD2')
+  const secretD3 = await chains.bitcoinWithNode.client.swap.generateSecret('secretD3')
 
   const secretHashA1 = sha256(secretA1)
   const secretHashA2 = sha256(secretA2)
@@ -129,7 +135,7 @@ async function getCollateralSecretParams (chain) {
 }
 
 async function getCollateralParams (chain) {
-  const refundableValue = config[chain.name].value
+  const refundableValue = config[chain.name].value / 2
   const seizableValue = config[chain.name].value
   const values = { refundableValue, seizableValue }
 
@@ -172,11 +178,37 @@ async function getCollateralParams (chain) {
   }
 }
 
+async function importAddresses(chain) {
+  const nonChangeAddresses = await chain.client.getMethod('getAddresses')(0, 99)
+  const changeAddresses = await chain.client.getMethod('getAddresses')(0, 99)
+
+  const addresses = [ ...nonChangeAddresses, ...changeAddresses ]
+
+  let addressesToImport = []
+  for (const address of addresses) {
+    addressesToImport.push({ "scriptPubKey": { "address": address.address }, "timestamp": "now" })
+  }
+
+  await chain.client.getMethod('jsonrpc')('importmulti', addressesToImport, { rescan: false })
+}
+
 async function getUnusedPubKeyAndAddress (chain) {
-  const address = (await chain.client.getMethod('getNewAddress')('p2sh-segwit')).address
-  let wif = await chain.client.getMethod('dumpPrivKey')(address)
-  const wallet = bitcoin.ECPair.fromWIF(wif, bitcoin.networks.regtest)
-  return { address, pubKey: wallet.publicKey }
+  if (chain === chains.bitcoinWithNode) {
+    const address = (await chain.client.getMethod('getNewAddress')('p2sh-segwit')).address
+    let wif = await chain.client.getMethod('dumpPrivKey')(address)
+    const wallet = bitcoin.ECPair.fromWIF(wif, bitcoin.networks.regtest)
+    return { address, pubKey: wallet.publicKey }
+  } else if (chain === chains.bitcoinWithLedger) {
+    const { address: sendtoaddress } = await chain.client.getMethod('getUnusedAddress')()
+
+    await chain.client.getMethod('jsonrpc')('sendtoaddress', sendtoaddress, 1)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const { address, publicKey } = await chain.client.getMethod('getUnusedAddress')()
+
+    console.log('\x1b[33m', `Initiating ${address}: Watch prompt on wallet`, '\x1b[0m')
+    return { address, pubKey: publicKey }
+  }
 }
 
 async function getSwapParams (chain) {
@@ -289,5 +321,6 @@ export {
   deployERC20Token,
   connectMetaMask,
   getUnusedPubKeyAndAddress,
-  getCollateralParams
+  getCollateralParams,
+  importAddresses
 }

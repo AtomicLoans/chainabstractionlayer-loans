@@ -102,11 +102,12 @@
     "test"
   ],
   "dependencies": {
-    "@liquality/bitcoin-utils": "^0.3.2",
-    "@liquality/bundle": "^0.3.2",
-    "@liquality/crypto": "^0.3.2",
-    "@liquality/utils": "^0.3.2",
+    "@liquality/bitcoin-utils": "^0.3.5",
+    "@liquality/bundle": "^0.3.5",
+    "@liquality/crypto": "^0.3.5",
+    "@liquality/utils": "^0.3.5",
     "@mblackmblack/bundle": "^0.2.12",
+    "acorn": "^6.3.0",
     "bitcoinjs-lib": "^5.1.2"
   }
 }
