@@ -15,7 +15,7 @@ import { version } from '../package.json'
 const OPS = bitcoin.script.OPS
 
 export default class BitcoinCollateralSwapProvider extends Provider {
-  constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2sh_p2wsh', address: 'p2sh_p2wpkh' }) {
+  constructor (chain = { network: networks.bitcoin }, mode = { script: 'p2wsh', address: 'p2wpkh' }) {
     super()
     this._network = chain.network
     if (!['p2wsh', 'p2sh_p2wsh', 'p2sh'].includes(mode.script)) {
