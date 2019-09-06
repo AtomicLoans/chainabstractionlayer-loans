@@ -102,10 +102,10 @@
     "test"
   ],
   "dependencies": {
-    "@liquality/bitcoin-utils": "^0.3.4",
-    "@liquality/bundle": "^0.3.4",
-    "@liquality/crypto": "^0.3.4",
-    "@liquality/utils": "^0.3.4",
+    "@liquality/bitcoin-utils": "^0.3.5",
+    "@liquality/bundle": "^0.3.5",
+    "@liquality/crypto": "^0.3.5",
+    "@liquality/utils": "^0.3.5",
     "@mblackmblack/bundle": "^0.2.12",
     "bitcoinjs-lib": "^5.1.2"
   }
