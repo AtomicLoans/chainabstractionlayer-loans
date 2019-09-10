@@ -3,6 +3,7 @@ import debug from 'debug'
 
 import Collateral from './Collateral'
 import CollateralSwap from './CollateralSwap'
+import Secrets from './Secrets'
 
 import {
   DuplicateProviderError,
@@ -33,6 +34,7 @@ export default class LoanClient {
 
     this._collateral = new Collateral(this)
     this._collateralSwap = new CollateralSwap(this)
+    this._secrets = new Secrets(this)
   }
 
   /**
@@ -127,6 +129,10 @@ export default class LoanClient {
 
   get collateralSwap () {
     return this._collateralSwap
+  }
+
+  get secrets () {
+    return this._secrets
   }
 }
 
