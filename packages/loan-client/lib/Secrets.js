@@ -13,7 +13,7 @@ export default class Collateral {
    */
   async generateSecrets (message, num = 1) {
     const address = (await this.client.getMethod('getAddresses')())[0].address
-    let secretMessage = await this.client.getMethod('signMessage')(message, address)
+    let secretMessage = sha256(await this.client.getMethod('signMessage')(message, address))
     let secrets = []
 
      for (let i = 0; i < num; i++) {
