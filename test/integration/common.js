@@ -8,6 +8,7 @@ import { LoanClient, providers as lproviders } from '../../packages/loan-bundle/
 import { sleep } from '@liquality/utils'
 import { sha256, hash160 } from '@liquality/crypto'
 import { findLast } from 'lodash'
+import { generateMnemonic } from 'bip39'
 import config from './config'
 
 chai.use(chaiAsPromised)
@@ -15,6 +16,7 @@ chai.use(chaiAsPromised)
 const metaMaskConnector = new MetaMaskConnector({ port: config.ethereum.metaMaskConnector.port })
 
 const bitcoinNetworks = providers.bitcoin.networks
+const bitcoinNetwork = bitcoinNetworks[config.bitcoin.network]
 
 const bitcoinWithLedger = new Client()
 const bitcoinLoanWithLedger = new LoanClient(bitcoinWithLedger)
@@ -31,6 +33,15 @@ bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitc
 bitcoinWithNode.addProvider(new providers.bitcoin.BitcoinNodeWalletProvider(bitcoinNetworks[config.bitcoin.network], config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password, 'bech32'))
 bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 bitcoinWithNode.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
+
+const bitcoinWithJs = new Client()
+const bitcoinLoanWithJs = new LoanClient(bitcoinWithJs)
+bitcoinWithJs.loan = bitcoinLoanWithJs
+bitcoinWithJs.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
+bitcoinWithJs.addProvider(new providers.bitcoin.BitcoinJsWalletProvider(bitcoinNetworks[config.bitcoin.network], config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password, generateMnemonic(256), 'bech32'))
+bitcoinWithJs.addProvider(new providers.bitcoin.BitcoinSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, 'p2wsh'))
+bitcoinWithJs.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
+bitcoinWithJs.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 
 const bitcoinNodeCollateralSwap = new Client()
 const bitcoinLoanNodeCollateralSwap = new LoanClient(bitcoinNodeCollateralSwap)
@@ -73,6 +84,7 @@ erc20WithLedger.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
 const chains = {
   bitcoinWithLedger: { id: 'Bitcoin Ledger', name: 'bitcoin', client: bitcoinWithLedger },
   bitcoinWithNode: { id: 'Bitcoin Node', name: 'bitcoin', client: bitcoinWithNode },
+  bitcoinWithJs: { id: 'Bitcoin Js', name: 'bitcoin', client: bitcoinWithJs, network: bitcoinNetwork },
   bitcoinNodeCollateralSwap: { id: 'Bitcoin Node Collateral Swap', name: 'bitcoin', client: bitcoinNodeCollateralSwap },
   ethereumWithMetaMask: { id: 'Ethereum MetaMask', name: 'ethereum', client: ethereumWithMetaMask },
   ethereumWithNode: { id: 'Ethereum Node', name: 'ethereum', client: ethereumWithNode },
@@ -178,18 +190,24 @@ async function getCollateralParams (chain) {
   }
 }
 
-async function importAddresses(chain) {
+async function importBitcoinAddresses (chain) {
   const nonChangeAddresses = await chain.client.getMethod('getAddresses')(0, 99)
-  const changeAddresses = await chain.client.getMethod('getAddresses')(0, 99)
+  const changeAddresses = await chain.client.getMethod('getAddresses')(0, 99, true)
 
   const addresses = [ ...nonChangeAddresses, ...changeAddresses ]
 
   let addressesToImport = []
   for (const address of addresses) {
-    addressesToImport.push({ "scriptPubKey": { "address": address.address }, "timestamp": "now" })
+    addressesToImport.push({ 'scriptPubKey': { 'address': address.address }, 'timestamp': 'now' })
   }
 
   await chain.client.getMethod('jsonrpc')('importmulti', addressesToImport, { rescan: false })
+}
+
+async function fundUnusedBitcoinAddress (chain) {
+  const unusedAddress = await chain.client.wallet.getUnusedAddress()
+  await chains.bitcoinWithNode.client.chain.sendTransaction(unusedAddress, 100000000)
+  await chains.bitcoinWithNode.client.chain.generateBlock(1)
 }
 
 async function getUnusedPubKeyAndAddress (chain) {
@@ -207,6 +225,15 @@ async function getUnusedPubKeyAndAddress (chain) {
     const { address, publicKey } = await chain.client.getMethod('getUnusedAddress')()
 
     console.log('\x1b[33m', `Initiating ${address}: Watch prompt on wallet`, '\x1b[0m')
+    return { address, pubKey: publicKey }
+  } else if (chain === chains.bitcoinWithJs) {
+    const { address: sendtoaddress } = await chain.client.getMethod('getUnusedAddress')()
+
+    await chain.client.getMethod('jsonrpc')('sendtoaddress', sendtoaddress, 1)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const { address, publicKey } = await chain.client.getMethod('getUnusedAddress')()
+
     return { address, pubKey: publicKey }
   }
 }
@@ -322,5 +349,6 @@ export {
   connectMetaMask,
   getUnusedPubKeyAndAddress,
   getCollateralParams,
-  importAddresses
+  importBitcoinAddresses,
+  fundUnusedBitcoinAddress
 }

@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-expressions */
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { chains, getUnusedPubKey, getCollateralParams, importAddresses } from '../common'
+import { chains, getUnusedPubKey, getCollateralParams, importBitcoinAddresses, fundUnusedBitcoinAddress } from '../common'
 import config from '../config'
 import { hash160 } from '@liquality/crypto'
 import { pubKeyToAddress } from '@liquality/bitcoin-utils'
@@ -221,14 +221,18 @@ describe('Collateral Flow', function () {
   this.timeout(config.timeout)
 
   describe('Bitcoin - Ledger', () => {
-    before(async function() {
-      await importAddresses(chains.bitcoinWithLedger)
-    })
-
+    before(async function () { await importBitcoinAddresses(chains.bitcoinWithLedger) })
+    beforeEach(async function () { await fundUnusedBitcoinAddress(chains.bitcoinWithLedger) })
     testCollateral(chains.bitcoinWithLedger)
   })
 
   describe('Bitcoin - Node', () => {
     testCollateral(chains.bitcoinWithNode)
+  })
+
+  describe('Bitcoin - Js', () => {
+    before(async function () { await importBitcoinAddresses(chains.bitcoinWithJs) })
+    beforeEach(async function () { await fundUnusedBitcoinAddress(chains.bitcoinWithJs) })
+    testCollateral(chains.bitcoinWithJs)
   })
 })

@@ -12,6 +12,7 @@
     "babel-plugin-lodash": "^3.3.4",
     "babel-preset-es2015-node5": "^1.2.0",
     "bignumber.js": "^9.0.0",
+    "bip39": "^3.0.2",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^3.0.0",
     "copy": "^0.3.2",
@@ -102,10 +103,10 @@
     "test"
   ],
   "dependencies": {
-    "@liquality/bitcoin-utils": "^0.3.5",
-    "@liquality/bundle": "^0.3.5",
-    "@liquality/crypto": "^0.3.5",
-    "@liquality/utils": "^0.3.5",
+    "@liquality/bitcoin-utils": "^0.3.6",
+    "@liquality/bundle": "^0.3.6",
+    "@liquality/crypto": "^0.3.6",
+    "@liquality/utils": "^0.3.6",
     "@mblackmblack/bundle": "^0.2.12",
     "acorn": "^6.3.0",
     "bitcoinjs-lib": "^5.1.2"
