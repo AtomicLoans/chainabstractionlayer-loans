@@ -206,6 +206,17 @@ export default class BitcoinCollateralProvider extends Provider {
     ])
   }
 
+  async getLockAddresses (pubKeys, secretHashes, expirations) {
+    console.log('pubKeys, secretHashes, expirations', pubKeys, secretHashes, expirations)
+    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+
+    const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
+    const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
+
+    return { refundableAddress, seizableAddress }
+  }
+
   async refund(txHash, pubKeys, secret, secretHashes, expirations) {
     const { secretHashB1, secretHashC1 } = secretHashes
 
