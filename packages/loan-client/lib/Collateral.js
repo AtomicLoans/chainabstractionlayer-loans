@@ -11,6 +11,10 @@ export default class Collateral {
     return this.client.getMethod('lock')(values, pubKeys, secretHashes, expirations)
   }
 
+  async getLockAddresses (pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('getLockAddresses')(pubKeys, secretHashes, expirations)
+  }
+
   async refund (txHashes, pubKeys, secret, secretHashes, expirations) {
     return this.client.getMethod('refund')(txHashes, pubKeys, secret, secretHashes, expirations)
   }
