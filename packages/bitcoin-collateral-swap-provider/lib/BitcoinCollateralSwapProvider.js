@@ -57,7 +57,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   getCollateralOutput (pubKeys, secretHashes, expirations, seizable) {
-    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
     const { liquidatorPubKeyHash }                      = pubKeys
     const { secretHashA1 }                              = secretHashes
     const { secretHashB1 }                              = secretHashes
@@ -128,7 +128,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
           OPS.OP_2,
           Buffer.from(borrowerPubKey, 'hex'),
           Buffer.from(lenderPubKey, 'hex'),
-          Buffer.from(agentPubKey, 'hex'),
+          Buffer.from(arbiterPubKey, 'hex'),
           OPS.OP_3,
           OPS.OP_CHECKMULTISIG,
         OPS.OP_ELSE,
@@ -248,7 +248,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   async _refundOne (initiationTxHash, pubKeys, secretHashes, expirations, period, seizable) {
-    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
     const network = this._bitcoinJsNetwork
     const pubKey = seizable ? lenderPubKey : borrowerPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
@@ -279,7 +279,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   async _refundAll (initiationTxHash, pubKeys, secrets, secretHashes, expirations, period) {
-    const { borrowerPubKey, lenderPubKey, agentPubKey, liquidatorPubKey } = pubKeys
+    const { borrowerPubKey, lenderPubKey, arbiterPubKey, liquidatorPubKey } = pubKeys
     const network = this._bitcoinJsNetwork
     const pubKey = (period === 'claimPeriod') ? liquidatorPubKey : (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
@@ -322,11 +322,11 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   async _multisigWrite (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
-    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
     const period = 'liquidationPeriod'
     const network = this._bitcoinJsNetwork
 
-    const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : agentPubKey
+    const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : arbiterPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
 
     const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
@@ -356,7 +356,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   async _multisigMove (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
-    const { borrowerPubKey, lenderPubKey, agentPubKey } = pubKeys
+    const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
     const period = 'liquidationPeriod'
     const network = this._bitcoinJsNetwork
 
