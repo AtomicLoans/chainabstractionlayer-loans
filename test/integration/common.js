@@ -159,9 +159,9 @@ async function getCollateralParams (chain) {
   const lenderAddress = lenderPubKeyAndAddress.address
   const lenderPubKey = lenderPubKeyAndAddress.pubKey
 
-  const agentPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
-  const agentAddress = agentPubKeyAndAddress.address
-  const agentPubKey = agentPubKeyAndAddress.pubKey
+  const arbiterPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
+  const agentAddress = arbiterPubKeyAndAddress.address
+  const arbiterPubKey = arbiterPubKeyAndAddress.pubKey
 
   const liquidatorPubKeyAndAddress = await getUnusedPubKeyAndAddress(chain)
   const liquidatorAddress = liquidatorPubKeyAndAddress.address
@@ -169,7 +169,7 @@ async function getCollateralParams (chain) {
   const liquidatorPubKeyHash = hash160(liquidatorPubKey)
 
   const addresses = { borrowerAddress, lenderAddress, agentAddress, liquidatorAddress }
-  const pubKeys = { borrowerPubKey, lenderPubKey, agentPubKey, liquidatorPubKeyHash, liquidatorPubKey }
+  const pubKeys = { borrowerPubKey, lenderPubKey, arbiterPubKey, liquidatorPubKeyHash, liquidatorPubKey }
 
   const { secrets, secretHashes } = await getCollateralSecretParams(chain)
 
