@@ -19,6 +19,10 @@ export default class CollateralSwap {
     return this.client.getMethod('multisigWrite')(txHash, pubKeys, secretHashes, expirations, party, to)
   }
 
+  async multisigMake (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
+    return this.client.getMethod('multisigMake')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
+  }
+
   async multisigMove (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
     return this.client.getMethod('multisigMove')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
   }

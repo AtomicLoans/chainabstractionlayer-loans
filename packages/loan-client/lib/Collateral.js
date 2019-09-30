@@ -23,6 +23,10 @@ export default class Collateral {
     return this.client.getMethod('multisigSign')(txHash, pubKeys, secretHashes, expirations, party, to)
   }
 
+  async multisigBuild (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
+    return this.client.getMethod('multisigBuild')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
+  }
+
   async multisigSend (txHash, sigs, pubKeys, secrets, secretHashes, expirations, to) {
     return this.client.getMethod('multisigSend')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
   }

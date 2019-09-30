@@ -49,6 +49,34 @@ function testCollateral (chain) {
     expect(71 <= Buffer.from(seizableSig, 'hex').length <= 72).to.equal(true)
   })
 
+  it('should allow multisig signing and building', async () => {
+    const { lockTxHash, colParams } = await lockCollateral(chain, 'swapExpiration')
+
+    const { address: to } = await chain.client.getMethod('getUnusedAddress')()
+
+    const balBefore = await chain.client.getMethod('getBalance')(to)
+
+    const multisigBorrowerParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
+    const borrowerSigs = await chain.client.loan.collateralSwap.multisigWrite(...multisigBorrowerParams)
+
+    const multisigParamsLender = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'lender', to]
+    const lenderSigs = await chain.client.loan.collateralSwap.multisigWrite(...multisigParamsLender)
+
+    const sigs = {
+      refundable: [Buffer.from(borrowerSigs.refundableSig, 'hex'), Buffer.from(lenderSigs.refundableSig, 'hex')],
+      seizable: [Buffer.from(borrowerSigs.seizableSig, 'hex'), Buffer.from(lenderSigs.seizableSig, 'hex')]
+    }
+
+    const multisigSendTxRaw = await chain.client.loan.collateralSwap.multisigMake(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
+    const multisigSendTx = await chain.client.getMethod('decodeRawTransaction')(multisigSendTxRaw)
+
+    const multisigSendVouts = multisigSendTx._raw.data.vout
+    const multisigSendVins = multisigSendTx._raw.data.vin
+
+    expect(multisigSendVins.length).to.equal(2)
+    expect(multisigSendVouts.length).to.equal(1)
+  })
+
   it('should allow multisig signing and sending', async () => {
     const { lockTxHash, colParams } = await lockCollateral(chain, 'swapExpiration')
 
