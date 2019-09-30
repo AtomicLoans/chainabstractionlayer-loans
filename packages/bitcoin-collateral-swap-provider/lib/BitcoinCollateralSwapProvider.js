@@ -235,8 +235,13 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return this._multisigWrite(txHash, pubKeys, secretHashes, expirations, party, to)
   }
 
+  async multisigMake (txHash, sigs, pubKeys, secretHashes, expirations, to) {
+    return this._multisigMake(txHash, sigs, pubKeys, secretHashes, expirations, to)
+  }
+
   async multisigMove (txHash, sigs, pubKeys, secretHashes, expirations, to) {
-    return this._multisigMove(txHash, sigs, pubKeys, secretHashes, expirations, to)
+    const txHex = await this._multisigMake(txHash, sigs, pubKeys, secretHashes, expirations, to)
+    return this.getMethod('sendRawTransaction')(txHex)
   }
 
   async snatch (txHash, pubKeys, secretHashes, expirations) {
@@ -355,7 +360,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return this.createSigs(initiationTxRaw, tx, address, ref, sei, expirations, period)
   }
 
-  async _multisigMove (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
+  async _multisigMake (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
     const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
     const period = 'liquidationPeriod'
     const network = this._bitcoinJsNetwork
@@ -389,7 +394,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     this.finalizeTx(tx, ref, 0)
     this.finalizeTx(tx, sei, 1)
 
-    return this.getMethod('sendRawTransaction')(tx.toHex())
+    return tx.toHex()
   }
 
   setPaymentVariants (initiationTx, col) {
