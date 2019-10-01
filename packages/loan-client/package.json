@@ -22,7 +22,7 @@
     "@liquality/client": "^0.3.6",
     "@liquality/crypto": "^0.3.6",
     "@liquality/errors": "^0.3.6",
-    "@liquality/schema": "^0.3.6",
+    "@liquality/schema": "^0.4.0",
     "ajv": "^6.10.0",
     "bignumber.js": "^9.0.0",
     "debug": "^4.1.1",
