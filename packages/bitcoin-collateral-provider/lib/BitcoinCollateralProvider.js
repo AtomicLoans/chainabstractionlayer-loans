@@ -104,9 +104,6 @@ export default class BitcoinCollateralProvider extends Provider {
         OPS.OP_CHECKSIG,
       OPS.OP_ELSE,
         OPS.OP_IF,
-          bitcoin.script.number.encode(approveExpiration),
-          OPS.OP_CHECKLOCKTIMEVERIFY,
-          OPS.OP_DROP,
           OPS.OP_2,
           Buffer.from(borrowerPubKey, 'hex'),
           Buffer.from(lenderPubKey, 'hex'),
@@ -416,9 +413,7 @@ export default class BitcoinCollateralProvider extends Provider {
 
     const txb = new bitcoin.TransactionBuilder(network)
 
-    if (period === 'liquidationPeriod') {
-      txb.setLockTime(approveExpiration)
-    } else if (period === 'seizurePeriod') {
+    if (period === 'seizurePeriod') {
       txb.setLockTime(liquidationExpiration)
     } else if (period === 'refundPeriod') {
       txb.setLockTime(seizureExpiration)
@@ -447,9 +442,7 @@ export default class BitcoinCollateralProvider extends Provider {
 
     const txb = new bitcoin.TransactionBuilder(network)
 
-    if (period === 'liquidationPeriod') {
-      txb.setLockTime(parseInt(approveExpiration))
-    } else if (period === 'seizurePeriod') {
+    if (period === 'seizurePeriod') {
       txb.setLockTime(parseInt(liquidationExpiration))
     } else if (period === 'refundPeriod') {
       txb.setLockTime(parseInt(seizureExpiration))
@@ -492,9 +485,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
 
     let lockTime = 0
-    if (period === 'liquidationPeriod') {
-      lockTime = approveExpiration
-    } else if (period === 'seizurePeriod') {
+    if (period === 'seizurePeriod') {
       lockTime = liquidationExpiration
     } else if (period === 'refundPeriod') {
       lockTime = seizureExpiration
