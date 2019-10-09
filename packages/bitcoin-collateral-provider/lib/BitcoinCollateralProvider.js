@@ -423,7 +423,7 @@ export default class BitcoinCollateralProvider extends Provider {
 
     // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
     // TODO: use node's feePerByte
-    const txfee = calculateFee(6, 6, 14)
+    const txfee = calculateFee(6, 6, 10)
 
     txb.addInput(col.colVout.txid, col.colVout.n, 0, col.prevOutScript)
     txb.addOutput(addressToString(to), col.colVout.vSat - txfee)
@@ -453,7 +453,7 @@ export default class BitcoinCollateralProvider extends Provider {
 
     // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
     // TODO: use node's feePerByte
-    const txfee = calculateFee(6, 6, 14)
+    const txfee = calculateFee(6, 6, 10)
 
     txb.addInput(ref.colVout.txid, ref.colVout.n, 0, ref.prevOutScript)
     txb.addInput(sei.colVout.txid, sei.colVout.n, 0, sei.prevOutScript)
