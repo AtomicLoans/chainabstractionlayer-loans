@@ -20,11 +20,11 @@
   "dependencies": {
     "@atomicloans/provider": "^0.3.2-beta.2",
     "@babel/runtime": "^7.4.3",
-    "@liquality/bitcoin-networks": "^0.3.6",
-    "@liquality/bitcoin-utils": "^0.3.6",
-    "@liquality/crypto": "^0.3.6",
-    "@liquality/provider": "^0.3.6",
-    "@liquality/utils": "^0.3.6",
+    "@liquality/bitcoin-networks": "^0.4.3",
+    "@liquality/bitcoin-utils": "^0.4.3",
+    "@liquality/crypto": "^0.4.3",
+    "@liquality/provider": "^0.4.3",
+    "@liquality/utils": "^0.4.3",
     "bignumber.js": "^9.0.0"
   },
   "engines": {
