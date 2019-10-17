@@ -509,9 +509,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
 
     let lockTime = 0
-    if (period === 'liquidationPeriod') {
-      lockTime = approveExpiration
-    } else if (period === 'seizurePeriod') {
+    if (period === 'seizurePeriod') {
       lockTime = liquidationExpiration
     } else if (period === 'refundPeriod') {
       lockTime = seizureExpiration
