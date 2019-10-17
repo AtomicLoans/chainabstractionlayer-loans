@@ -38,10 +38,10 @@ const bitcoinWithJs = new Client()
 const bitcoinLoanWithJs = new LoanClient(bitcoinWithJs)
 bitcoinWithJs.loan = bitcoinLoanWithJs
 bitcoinWithJs.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
-bitcoinWithJs.addProvider(new providers.bitcoin.BitcoinJsWalletProvider(bitcoinNetworks[config.bitcoin.network], config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password, generateMnemonic(256), 'bech32'))
+bitcoinWithJs.addProvider(new providers.bitcoin.BitcoinJsWalletProvider(bitcoinNetworks[config.bitcoin.network], generateMnemonic(256), 'bech32'))
 bitcoinWithJs.addProvider(new providers.bitcoin.BitcoinSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, 'p2wsh'))
-bitcoinWithJs.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
-bitcoinWithJs.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
+bitcoinWithJs.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2wsh', address: 'p2wpkh'}))
+bitcoinWithJs.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2wsh', address: 'p2wpkh'}))
 
 const bitcoinNodeCollateralSwap = new Client()
 const bitcoinLoanNodeCollateralSwap = new LoanClient(bitcoinNodeCollateralSwap)
