@@ -106,7 +106,7 @@
     "@liquality/bitcoin-utils": "^0.4.3",
     "@liquality/bundle": "^0.4.3",
     "@liquality/crypto": "^0.4.3",
-    "@liquality/utils": "^0.4.3",
+    "@liquality/utils": "^0.4.4",
     "@mblackmblack/bundle": "^0.2.12",
     "acorn": "^7.1.0",
     "bitcoinjs-lib": "^5.1.2"
