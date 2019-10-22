@@ -105,7 +105,7 @@
   "dependencies": {
     "@liquality/bitcoin-utils": "^0.4.3",
     "@liquality/bundle": "^0.4.3",
-    "@liquality/crypto": "^0.4.3",
+    "@liquality/crypto": "^0.4.6",
     "@liquality/utils": "^0.4.3",
     "@mblackmblack/bundle": "^0.2.12",
     "acorn": "^7.1.0",
