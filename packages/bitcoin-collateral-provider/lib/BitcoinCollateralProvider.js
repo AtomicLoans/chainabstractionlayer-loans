@@ -306,7 +306,8 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, address)
+    const estimateFees = true
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, address, estimateFees)
 
     const { refundableSig, seizableSig } = await this.createSigs(initiationTxRaw, tx, address, ref, sei, expirations, period)
 
@@ -349,7 +350,7 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, outputs)
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, outputs)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -380,7 +381,7 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, outputs)
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, outputs)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -432,7 +433,7 @@ export default class BitcoinCollateralProvider extends Provider {
     return txb.buildIncomplete()
   }
 
-  buildFullColTx (period, ref, sei, expirations, outputs) {
+  async buildFullColTx (period, ref, sei, expirations, outputs, estimateFees) {
     if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
 
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
@@ -452,9 +453,17 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.prevOutScript = ref.paymentVariant.output
     sei.prevOutScript = sei.paymentVariant.output
 
+    const isSegwit = ref.paymentVariantName === 'p2wsh' || ref.paymentVariantName === 'p2sh_p2wsh'
+
     // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
     // TODO: use node's feePerByte
-    const txfee = calculateFee(6, 6, 14)
+    let txfee
+    if (estimateFees && isSegwit) {
+      const feePerByte = Math.ceil(await this.getMethod('getFeePerByte')())
+      txfee = BigNumber(feePerByte).times(364).toNumber()
+    } else {
+      txfee = calculateFee(6, 6, 14)
+    }
 
     txb.addInput(ref.colVout.txid, ref.colVout.n, 0, ref.prevOutScript)
     txb.addInput(sei.colVout.txid, sei.colVout.n, 0, sei.prevOutScript)
