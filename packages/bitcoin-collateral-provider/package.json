@@ -23,7 +23,7 @@
     "@liquality/bitcoin-networks": "^0.4.3",
     "@liquality/bitcoin-utils": "^0.4.3",
     "@liquality/crypto": "^0.4.3",
-    "@liquality/provider": "^0.4.3",
+    "@liquality/provider": "^0.4.5",
     "@liquality/utils": "^0.4.3",
     "bitcoinjs-lib": "^5.1.2"
   },
