@@ -22,7 +22,7 @@
     "esdoc-ecmascript-proposal-plugin": "^1.0.0",
     "esdoc-standard-plugin": "^1.0.0",
     "eslint-plugin-html": "^6.0.0",
-    "eslint-plugin-markdown": "^1.0.0",
+    "eslint-plugin-markdown": "^1.0.1",
     "gh-pages": "^2.0.1",
     "lerna": "^3.13.3",
     "lodash-webpack-plugin": "^0.11.5",
