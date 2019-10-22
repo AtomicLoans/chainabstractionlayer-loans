@@ -22,7 +22,7 @@
     "@babel/runtime": "^7.4.3",
     "@liquality/bitcoin-networks": "^0.4.3",
     "@liquality/bitcoin-utils": "^0.4.3",
-    "@liquality/crypto": "^0.4.3",
+    "@liquality/crypto": "^0.4.6",
     "@liquality/provider": "^0.4.3",
     "@liquality/utils": "^0.4.3",
     "bitcoinjs-lib": "^5.1.2"
