@@ -20,7 +20,7 @@
     "@atomicloans/bitcoin-collateral-provider": "^0.3.3",
     "@atomicloans/bitcoin-collateral-swap-provider": "^0.3.3",
     "@atomicloans/loan-client": "^0.3.3",
-    "@babel/runtime": "^7.4.3",
+    "@babel/runtime": "^7.7.0",
     "@ledgerhq/hw-transport-web-ble": "^4.57.0",
     "@ledgerhq/hw-transport-webusb": "^4.57.0",
     "axios": "^0.19.0",
