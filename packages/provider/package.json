@@ -18,7 +18,7 @@
   "author": "AtomicLoans <info@atomicloans.io>",
   "license": "MIT",
   "dependencies": {
-    "@babel/runtime": "^7.4.3"
+    "@babel/runtime": "^7.7.1"
   },
   "engines": {
     "node": "~8.12.0"
