@@ -175,7 +175,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ])
   }
 
-  getCollateralPaymentVariants (collateralOutput) {
+  getCollateralSwapPaymentVariants (collateralOutput) {
     const p2wsh = bitcoin.payments.p2wsh({
       redeem: { output: collateralOutput, network: this._bitcoinJsNetwork },
       network: this._bitcoinJsNetwork
@@ -197,8 +197,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
     const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
-    const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
-    const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
+    const refundableAddress = this.getCollateralSwapPaymentVariants(refundableOutput)[this._mode.script].address
+    const seizableAddress = this.getCollateralSwapPaymentVariants(seizableOutput)[this._mode.script].address
 
     return this.getMethod('sendBatchTransaction')([
       { to: refundableAddress, value: refundableValue },
@@ -210,8 +210,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
     const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
-    const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
-    const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
+    const refundableAddress = this.getCollateralSwapPaymentVariants(refundableOutput)[this._mode.script].address
+    const seizableAddress = this.getCollateralSwapPaymentVariants(seizableOutput)[this._mode.script].address
 
     return { refundableAddress, seizableAddress }
   }
@@ -265,7 +265,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     let col = {} // Collateral Object
 
     col.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, seizable)
-    col.colPaymentVariants = this.getCollateralPaymentVariants(col.output)
+    col.colPaymentVariants = this.getCollateralSwapPaymentVariants(col.output)
     this.setPaymentVariants(initiationTx, col)
     col.colVout.txid = initiationTxHash
 
@@ -299,8 +299,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
     sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
-    ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
-    sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+    ref.colPaymentVariants = this.getCollateralSwapPaymentVariants(ref.output)
+    sei.colPaymentVariants = this.getCollateralSwapPaymentVariants(sei.output)
 
     this.setPaymentVariants(initiationTx, ref)
     this.setPaymentVariants(initiationTx, sei)
@@ -344,8 +344,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
     sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
-    ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
-    sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+    ref.colPaymentVariants = this.getCollateralSwapPaymentVariants(ref.output)
+    sei.colPaymentVariants = this.getCollateralSwapPaymentVariants(sei.output)
 
     this.setPaymentVariants(initiationTx, ref)
     this.setPaymentVariants(initiationTx, sei)
@@ -375,8 +375,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
     sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
-    ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
-    sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+    ref.colPaymentVariants = this.getCollateralSwapPaymentVariants(ref.output)
+    sei.colPaymentVariants = this.getCollateralSwapPaymentVariants(sei.output)
 
     this.setPaymentVariants(initiationTx, ref)
     this.setPaymentVariants(initiationTx, sei)
