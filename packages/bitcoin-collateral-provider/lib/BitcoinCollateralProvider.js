@@ -9,6 +9,7 @@ import {
   hash160,
   sha256
 } from '@liquality/crypto'
+import { BigNumber } from 'bignumber.js'
 
 import { version } from '../package.json'
 
@@ -104,9 +105,6 @@ export default class BitcoinCollateralProvider extends Provider {
         OPS.OP_CHECKSIG,
       OPS.OP_ELSE,
         OPS.OP_IF,
-          bitcoin.script.number.encode(approveExpiration),
-          OPS.OP_CHECKLOCKTIMEVERIFY,
-          OPS.OP_DROP,
           OPS.OP_2,
           Buffer.from(borrowerPubKey, 'hex'),
           Buffer.from(lenderPubKey, 'hex'),
@@ -308,7 +306,8 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, address)
+    const estimateFees = true
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, address, estimateFees)
 
     const { refundableSig, seizableSig } = await this.createSigs(initiationTxRaw, tx, address, ref, sei, expirations, period)
 
@@ -351,7 +350,7 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, outputs)
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, outputs)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -382,7 +381,7 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, outputs)
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, outputs)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -412,13 +411,11 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    col.colVout.vSat = Math.floor(col.colVout.value * 1e8)
+    col.colVout.vSat = BigNumber(col.colVout.value).times(1e8).toNumber()
 
     const txb = new bitcoin.TransactionBuilder(network)
 
-    if (period === 'liquidationPeriod') {
-      txb.setLockTime(approveExpiration)
-    } else if (period === 'seizurePeriod') {
+    if (period === 'seizurePeriod') {
       txb.setLockTime(liquidationExpiration)
     } else if (period === 'refundPeriod') {
       txb.setLockTime(seizureExpiration)
@@ -436,20 +433,18 @@ export default class BitcoinCollateralProvider extends Provider {
     return txb.buildIncomplete()
   }
 
-  buildFullColTx (period, ref, sei, expirations, outputs) {
+  async buildFullColTx (period, ref, sei, expirations, outputs, estimateFees) {
     if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
 
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    ref.colVout.vSat = Math.floor(ref.colVout.value * 1e8)
-    sei.colVout.vSat = Math.floor(sei.colVout.value * 1e8)
+    ref.colVout.vSat = BigNumber(ref.colVout.value).times(1e8).toNumber()
+    sei.colVout.vSat = BigNumber(sei.colVout.value).times(1e8).toNumber()
 
     const txb = new bitcoin.TransactionBuilder(network)
 
-    if (period === 'liquidationPeriod') {
-      txb.setLockTime(parseInt(approveExpiration))
-    } else if (period === 'seizurePeriod') {
+    if (period === 'seizurePeriod') {
       txb.setLockTime(parseInt(liquidationExpiration))
     } else if (period === 'refundPeriod') {
       txb.setLockTime(parseInt(seizureExpiration))
@@ -458,9 +453,17 @@ export default class BitcoinCollateralProvider extends Provider {
     ref.prevOutScript = ref.paymentVariant.output
     sei.prevOutScript = sei.paymentVariant.output
 
+    const isSegwit = ref.paymentVariantName === 'p2wsh' || ref.paymentVariantName === 'p2sh_p2wsh'
+
     // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
     // TODO: use node's feePerByte
-    const txfee = calculateFee(6, 6, 14)
+    let txfee
+    if (estimateFees && isSegwit) {
+      const feePerByte = Math.ceil(await this.getMethod('getFeePerByte')())
+      txfee = BigNumber(feePerByte).times(364).toNumber()
+    } else {
+      txfee = calculateFee(6, 6, 14)
+    }
 
     txb.addInput(ref.colVout.txid, ref.colVout.n, 0, ref.prevOutScript)
     txb.addInput(sei.colVout.txid, sei.colVout.n, 0, sei.prevOutScript)
@@ -492,9 +495,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
 
     let lockTime = 0
-    if (period === 'liquidationPeriod') {
-      lockTime = approveExpiration
-    } else if (period === 'seizurePeriod') {
+    if (period === 'seizurePeriod') {
       lockTime = liquidationExpiration
     } else if (period === 'refundPeriod') {
       lockTime = seizureExpiration
@@ -518,9 +519,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
 
     let lockTime = 0
-    if (period === 'liquidationPeriod') {
-      lockTime = approveExpiration
-    } else if (period === 'seizurePeriod') {
+    if (period === 'seizurePeriod') {
       lockTime = liquidationExpiration
     } else if (period === 'refundPeriod') {
       lockTime = seizureExpiration

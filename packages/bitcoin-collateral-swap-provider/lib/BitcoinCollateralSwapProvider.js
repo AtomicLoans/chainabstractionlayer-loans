@@ -9,6 +9,7 @@ import {
   hash160,
   sha256
 } from '@liquality/crypto'
+import { BigNumber } from 'bignumber.js'
 
 import { version } from '../package.json'
 
@@ -414,7 +415,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const { swapExpiration, liquidationExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    col.colVout.vSat = Math.floor(col.colVout.value * 1e8)
+    col.colVout.vSat = BigNumber(col.colVout.value).times(1e8).toNumber()
 
     const txb = new bitcoin.TransactionBuilder(network)
 
@@ -442,8 +443,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const { swapExpiration, liquidationExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
-    ref.colVout.vSat = Math.floor(ref.colVout.value * 1e8)
-    sei.colVout.vSat = Math.floor(sei.colVout.value * 1e8)
+    ref.colVout.vSat = BigNumber(ref.colVout.value).times(1e8).toNumber()
+    sei.colVout.vSat = BigNumber(sei.colVout.value).times(1e8).toNumber()
 
     const txb = new bitcoin.TransactionBuilder(network)
 
