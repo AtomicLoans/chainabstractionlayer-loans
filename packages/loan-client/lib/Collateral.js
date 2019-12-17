@@ -11,12 +11,28 @@ export default class Collateral {
     return this.client.getMethod('lock')(values, pubKeys, secretHashes, expirations)
   }
 
+  async lockRefundable (value, pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('lockRefundable')(value, pubKeys, secretHashes, expirations)
+  }
+
+  async lockSeizable (value, pubKeys, secretHashes, expirations) {
+    return this.client.getMethod('lockSeizable')(value, pubKeys, secretHashes, expirations)
+  }
+
   async getLockAddresses (pubKeys, secretHashes, expirations) {
     return this.client.getMethod('getLockAddresses')(pubKeys, secretHashes, expirations)
   }
 
   async refund (txHashes, pubKeys, secret, secretHashes, expirations) {
     return this.client.getMethod('refund')(txHashes, pubKeys, secret, secretHashes, expirations)
+  }
+
+  async refundRefundable (txHashes, pubKeys, secret, secretHashes, expirations) {
+    return this.client.getMethod('refundRefundable')(txHashes, pubKeys, secret, secretHashes, expirations)
+  }
+
+  async refundSeizable (txHashes, pubKeys, secret, secretHashes, expirations) {
+    return this.client.getMethod('refundSeizable')(txHashes, pubKeys, secret, secretHashes, expirations)
   }
 
   async multisigSign (txHash, pubKeys, secretHashes, expirations, party, to) {
