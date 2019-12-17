@@ -207,7 +207,8 @@ async function importBitcoinAddresses (chain) {
 async function fundUnusedBitcoinAddress (chain) {
   const unusedAddress = await chain.client.wallet.getUnusedAddress()
   await chains.bitcoinWithNode.client.chain.sendTransaction(unusedAddress, 100000000)
-  await chains.bitcoinWithNode.client.chain.generateBlock(1)
+  const newAddress = await chain.client.getMethod('jsonrpc')('getnewaddress')
+  await chain.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 }
 
 async function getUnusedPubKeyAndAddress (chain) {
@@ -219,8 +220,8 @@ async function getUnusedPubKeyAndAddress (chain) {
   } else if (chain === chains.bitcoinWithLedger) {
     const { address: sendtoaddress } = await chain.client.getMethod('getUnusedAddress')()
 
-    await chain.client.getMethod('jsonrpc')('sendtoaddress', sendtoaddress, 1)
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
     const { address, publicKey } = await chain.client.getMethod('getUnusedAddress')()
 
@@ -230,7 +231,8 @@ async function getUnusedPubKeyAndAddress (chain) {
     const { address: sendtoaddress } = await chain.client.getMethod('getUnusedAddress')()
 
     await chain.client.getMethod('jsonrpc')('sendtoaddress', sendtoaddress, 1)
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
     const { address, publicKey } = await chain.client.getMethod('getUnusedAddress')()
 

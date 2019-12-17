@@ -18,7 +18,8 @@ function testCollateral (chain) {
 
     const refundParams = [lockTxHash, colParams.pubKeys, colParams.secrets.secretB1, colParams.secretHashes, colParams.expirations]
     const refundTxHash = await chain.client.loan.collateral.refund(...refundParams)
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
     const refundTxRaw = await chain.client.getMethod('getRawTransactionByHash')(refundTxHash)
     const refundTx = await chain.client.getMethod('decodeRawTransaction')(refundTxRaw)
@@ -39,7 +40,8 @@ function testCollateral (chain) {
     const refundParams = [lockTxHash, colParams.pubKeys, colParams.secrets.secretC1, colParams.secretHashes, colParams.expirations]
     const refundTxHash = await chain.client.loan.collateral.refund(...refundParams)
 
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
     const refundTxRaw = await chain.client.getMethod('getRawTransactionByHash')(refundTxHash)
     const refundTx = await chain.client.getMethod('decodeRawTransaction')(refundTxRaw)
@@ -120,7 +122,8 @@ function testCollateral (chain) {
 
     const multisigSendTxHash = await chain.client.loan.collateral.multisigSend(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
 
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
     const multisigSendTxRaw = await chain.client.getMethod('getRawTransactionByHash')(multisigSendTxHash)
     const multisigSendTx = await chain.client.getMethod('decodeRawTransaction')(multisigSendTxRaw)
@@ -150,7 +153,8 @@ function testCollateral (chain) {
 
     const multisigSendTxHash = await chain.client.loan.collateral.multisigSend(lockTxHash, sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
 
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
     const multisigSendTxRaw = await chain.client.getMethod('getRawTransactionByHash')(multisigSendTxHash)
     const multisigSendTx = await chain.client.getMethod('decodeRawTransaction')(multisigSendTxRaw)
@@ -168,7 +172,8 @@ function testCollateral (chain) {
     const seizeParams = [lockTxHash, colParams.pubKeys, colParams.secrets.secretA1, colParams.secretHashes, colParams.expirations]
     const seizeTxHash = await chain.client.loan.collateral.seize(...seizeParams)
 
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
     const seizeTxRaw = await chain.client.getMethod('getRawTransactionByHash')(seizeTxHash)
     const seizeTx = await chain.client.getMethod('decodeRawTransaction')(seizeTxRaw)
@@ -191,7 +196,9 @@ function testCollateral (chain) {
 
     const reclaimOneParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, true]
     const reclaimTxHash = await chain.client.loan.collateral.reclaimOne(...reclaimOneParams)
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
     const reclaimTxRaw = await chain.client.getMethod('getRawTransactionByHash')(reclaimTxHash)
     const reclaimTx = await chain.client.getMethod('decodeRawTransaction')(reclaimTxRaw)
@@ -208,7 +215,9 @@ function testCollateral (chain) {
 
     const reclaimOneParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations, false]
     const reclaimTx = await chain.client.loan.collateral.reclaimOne(...reclaimOneParams)
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
   })
 
   it('should allow reclaiming of all collateral', async () => {
@@ -216,7 +225,9 @@ function testCollateral (chain) {
 
     const reclaimParams = [lockTxHash, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
     const reclaimTx = await chain.client.loan.collateral.reclaimAll(...reclaimParams)
-    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+    
+    const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+    await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
   })
 }
 
@@ -230,7 +241,9 @@ async function lockCollateral (chain, customExpiration) {
   }
 
   const lockTxHash = await chain.client.loan.collateral.lock(...lockParams)
-  await chains.bitcoinWithNode.client.chain.generateBlock(1)
+  
+  const newAddress = await chains.bitcoinWithNode.client.getMethod('jsonrpc')('getnewaddress')
+  await chains.bitcoinWithNode.client.getMethod('jsonrpc')('generatetoaddress', 1, newAddress)
 
   return { lockTxHash, colParams }
 }
