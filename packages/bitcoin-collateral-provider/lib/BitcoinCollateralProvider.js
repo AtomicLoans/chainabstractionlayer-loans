@@ -204,6 +204,18 @@ export default class BitcoinCollateralProvider extends Provider {
     ])
   }
 
+  async lockRefundable (value, pubKeys, secretHashes, expirations) {
+    const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+    const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
+    return this.getMethod('sendTransaction')(refundableAddress, value)
+  }
+
+  async lockSeizable (value, pubKeys, secretHashes, expirations) {
+    const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+    const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
+    return this.getMethod('sendTransaction')(seizableAddress, value)
+  }
+
   async getLockAddresses (pubKeys, secretHashes, expirations) {
     const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
     const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
@@ -223,6 +235,28 @@ export default class BitcoinCollateralProvider extends Provider {
     else                                      { throw new Error('Secret must match one of secretHashB1 or secretHashC1') }
 
     return this._refundAll(txHash, pubKeys, secrets, secretHashes, expirations, 'loanPeriod')
+  }
+
+  async refundRefundable(txHash, pubKeys, secret, secretHashes, expirations) {
+    const { secretHashB1, secretHashC1 } = secretHashes
+
+    let secrets
+    if      (sha256(secret) === secretHashB1) { secrets = [secret, null] }
+    else if (sha256(secret) === secretHashC1) { secrets = [null, secret]}
+    else                                      { throw new Error('Secret must match one of secretHashB1 or secretHashC1') }
+
+    return this._refundOne(txHash, pubKeys, secrets, secretHashes, expirations, 'loanPeriod', false)
+  }
+
+  async refundSeizable(txHash, pubKeys, secret, secretHashes, expirations) {
+    const { secretHashB1, secretHashC1 } = secretHashes
+
+    let secrets
+    if      (sha256(secret) === secretHashB1) { secrets = [secret, null] }
+    else if (sha256(secret) === secretHashC1) { secrets = [null, secret]}
+    else                                      { throw new Error('Secret must match one of secretHashB1 or secretHashC1') }
+
+    return this._refundOne(txHash, pubKeys, secrets, secretHashes, expirations, 'loanPeriod', true)
   }
 
   async multisigSign (txHash, pubKeys, secretHashes, expirations, party, outputs) {
