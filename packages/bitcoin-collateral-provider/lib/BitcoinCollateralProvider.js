@@ -64,7 +64,7 @@ export default class BitcoinCollateralProvider extends Provider {
     const { secretHashA1 }                                         = secretHashes
     const { secretHashB1 }                                         = secretHashes
     const { secretHashC1 }                                         = secretHashes
-    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
+    const { liquidationExpiration, seizureExpiration } = expirations
 
     const borrowerPubKeyHash = hash160(borrowerPubKey)
     const lenderPubKeyHash = hash160(lenderPubKey)
@@ -189,14 +189,30 @@ export default class BitcoinCollateralProvider extends Provider {
     return { p2wsh, p2sh_p2wsh, p2sh }
   }
 
-  async lock (values, pubKeys, secretHashes, expirations) {
-    const { refundableValue, seizableValue } = values
+  getSecrets (secret, secretHashes) {
+    const { secretHashB1, secretHashC1 } = secretHashes
 
+    let secrets
+    if      (sha256(secret) === secretHashB1) { secrets = [secret, null] }
+    else if (sha256(secret) === secretHashC1) { secrets = [null, secret]}
+    else                                      { throw new Error('Secret must match one of secretHashB1 or secretHashC1') }
+
+    return secrets
+  }
+
+  getCollateralAddresses (pubKeys, secretHashes, expirations) {
     const refundableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
     const seizableOutput = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
 
     const refundableAddress = this.getCollateralPaymentVariants(refundableOutput)[this._mode.script].address
     const seizableAddress = this.getCollateralPaymentVariants(seizableOutput)[this._mode.script].address
+
+    return { refundableAddress, seizableAddress }
+  }
+
+  async lock (values, pubKeys, secretHashes, expirations) {
+    const { refundableValue, seizableValue } = values
+    const { refundableAddress, seizableAddress } = this.getCollateralAddresses(pubKeys, secretHashes, expirations)
 
     return this.getMethod('sendBatchTransaction')([
       { to: refundableAddress, value: refundableValue },
@@ -227,36 +243,27 @@ export default class BitcoinCollateralProvider extends Provider {
   }
 
   async refund(txHash, pubKeys, secret, secretHashes, expirations) {
-    const { secretHashB1, secretHashC1 } = secretHashes
-
-    let secrets
-    if      (sha256(secret) === secretHashB1) { secrets = [secret, null] }
-    else if (sha256(secret) === secretHashC1) { secrets = [null, secret]}
-    else                                      { throw new Error('Secret must match one of secretHashB1 or secretHashC1') }
+    const secrets = this.getSecrets(secret, secretHashes)
 
     return this._refundAll(txHash, pubKeys, secrets, secretHashes, expirations, 'loanPeriod')
   }
 
   async refundRefundable(txHash, pubKeys, secret, secretHashes, expirations) {
-    const { secretHashB1, secretHashC1 } = secretHashes
-
-    let secrets
-    if      (sha256(secret) === secretHashB1) { secrets = [secret, null] }
-    else if (sha256(secret) === secretHashC1) { secrets = [null, secret]}
-    else                                      { throw new Error('Secret must match one of secretHashB1 or secretHashC1') }
+    const secrets = this.getSecrets(secret, secretHashes)
 
     return this._refundOne(txHash, pubKeys, secrets, secretHashes, expirations, 'loanPeriod', false)
   }
 
   async refundSeizable(txHash, pubKeys, secret, secretHashes, expirations) {
-    const { secretHashB1, secretHashC1 } = secretHashes
-
-    let secrets
-    if      (sha256(secret) === secretHashB1) { secrets = [secret, null] }
-    else if (sha256(secret) === secretHashC1) { secrets = [null, secret]}
-    else                                      { throw new Error('Secret must match one of secretHashB1 or secretHashC1') }
+    const secrets = this.getSecrets(secret, secretHashes)
 
     return this._refundOne(txHash, pubKeys, secrets, secretHashes, expirations, 'loanPeriod', true)
+  }
+
+  async refundMany(txHashes, pubKeys, secret, secretHashes, expirations) {
+    const secrets = this.getSecrets(secret, secretHashes)
+
+    return this._refundMany(txHashes, pubKeys, secrets, secretHashes, expirations, 'loanPeriod')
   }
 
   async multisigSign (txHash, pubKeys, secretHashes, expirations, party, outputs) {
@@ -353,6 +360,98 @@ export default class BitcoinCollateralProvider extends Provider {
 
     this.finalizeTx(tx, ref, 0)
     this.finalizeTx(tx, sei, 1)
+
+    return this.getMethod('sendRawTransaction')(tx.toHex())
+  }
+
+  async _refundMany (txHashes, pubKeys, secrets, secretHashes, expirations, period) {
+    const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
+    const network = this._bitcoinJsNetwork
+    const pubKey = (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
+    const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
+    const { refundableAddress, seizableAddress } = this.getCollateralAddresses(pubKeys, secretHashes, expirations)
+
+    let cols = []
+
+    for (let i = 0; i < txHashes.length; i++) {
+      const initiationTxHash = txHashes[i]
+      let hasRefundable = false
+      let hasSeizable = false
+
+      const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
+      const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
+      const vouts = initiationTx._raw.data.vout
+
+      for (let j = 0; j < vouts.length; j++) {
+        const { scriptPubKey: { addresses } } = vouts[j]
+        const address = addresses[0]
+
+        if (address === refundableAddress) { hasRefundable = true }
+        if (address === seizableAddress) { hasSeizable = true }
+      }
+
+      if (hasRefundable && hasSeizable) {
+        let ref = {} // Refundable Object
+        let sei = {} // Seizable Object
+
+        ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+        sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+
+        ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
+        sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+
+        this.setPaymentVariants(initiationTx, ref)
+        this.setPaymentVariants(initiationTx, sei)
+
+        ref.colVout.txid = initiationTxHash
+        sei.colVout.txid = initiationTxHash
+
+        ref.colVout.index = 0
+        sei.colVout.index = 1
+
+        ref.txRaw = initiationTxRaw
+        sei.txRaw = initiationTxRaw
+
+        ref.seizable = false
+        sei.seizable = true
+
+        cols.push(ref)
+        cols.push(sei)
+      } else if (hasRefundable || hasSeizable) {
+        const seizable = hasSeizable ? true : false
+
+        let col = {} // Collateral Object
+
+        col.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, seizable)
+        col.colPaymentVariants = this.getCollateralPaymentVariants(col.output)
+        this.setPaymentVariants(initiationTx, col)
+        col.colVout.txid = initiationTxHash
+
+        col.colVout.index = 0
+
+        col.txRaw = initiationTxRaw
+
+        col.seizable = seizable
+
+        cols.push(col)
+      } else {
+        throw new Error(`The Tx Hash ${initiationTxHash} does not contain refundable or seizable collateral`)
+      }
+    }
+
+    const estimateFees = true
+    const tx = await this.buildFullManyColTx(period, cols, expirations, address, estimateFees)
+
+    const sigs = await this.createManySigs(tx, address, cols, expirations, period)
+
+    for (let k = 0; k < cols.length; k++) {
+      let col = cols[k]
+
+      col.colInput = this.getCollateralInput(sigs[k], period, secrets, pubKey)
+      this.setHashForSigOrWit(tx, col, k)
+      this.finalizeTx(tx, col, k)
+    }
 
     return this.getMethod('sendRawTransaction')(tx.toHex())
   }
@@ -512,6 +611,53 @@ export default class BitcoinCollateralProvider extends Provider {
     return txb.buildIncomplete()
   }
 
+  async buildFullManyColTx (period, cols, expirations, outputs, estimateFees) {
+    if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
+
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
+    const network = this._bitcoinJsNetwork
+
+    const txb = new bitcoin.TransactionBuilder(network)
+
+    if (period === 'seizurePeriod') {
+      txb.setLockTime(parseInt(liquidationExpiration))
+    } else if (period === 'refundPeriod') {
+      txb.setLockTime(parseInt(seizureExpiration))
+    }
+
+    let vSatTotal = 0
+    for (let i = 0; i < cols.length; i++) {
+      const col = cols[i]
+
+      col.colVout.vSat = BigNumber(col.colVout.value).times(1e8).toNumber()
+      col.prevOutScript = col.paymentVariant.output
+
+      txb.addInput(col.colVout.txid, col.colVout.n, 0, col.prevOutScript) // txid, vout, sequence, prevTxScript
+
+      vSatTotal += col.colVout.vSat
+    }
+
+    const isSegwit = cols[0].paymentVariantName === 'p2wsh' || cols[0].paymentVariantName === 'p2sh_p2wsh'
+
+    // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
+    let txfee
+    if (estimateFees && isSegwit) {
+      const feePerByte = Math.ceil(await this.getMethod('getFeePerByte')())
+      txfee = BigNumber(feePerByte).times(203 + ((cols.length - 1) * 161)).toNumber()
+    } else {
+      txfee = BigNumber(20).times(203 + ((cols.length - 1) * 161)).toNumber()
+    }
+
+    if (outputs.length === 1) {
+      txb.addOutput(addressToString(outputs[0].address), vSatTotal - txfee)
+    } else if (outputs.length === 2) {
+      txb.addOutput(addressToString(outputs[0].address), outputs[0].value)
+      txb.addOutput(addressToString(outputs[1].address), outputs[1].value)
+    }
+
+    return txb.buildIncomplete()
+  }
+
   setHashForSigOrWit (tx, col, i) {
     const network = this._bitcoinJsNetwork
     const needsWitness = col.paymentVariantName === 'p2wsh' || col.paymentVariantName === 'p2sh_p2wsh'
@@ -578,6 +724,41 @@ export default class BitcoinCollateralProvider extends Provider {
     const seizableSig = signatures[1]
 
     return { refundableSig, seizableSig }
+  }
+
+  async createManySigs (tx, address, cols, expirations, period) {
+    const isSegwit = cols[0].paymentVariantName === 'p2wsh' || cols[0].paymentVariantName === 'p2sh_p2wsh'
+
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
+
+    let lockTime = 0
+    if (period === 'seizurePeriod') {
+      lockTime = liquidationExpiration
+    } else if (period === 'refundPeriod') {
+      lockTime = seizureExpiration
+    }
+
+    let inputsToSign = []
+    let addresses = []
+    for (let i = 0; i < cols.length; i++) {
+      const col = cols[i]
+
+      const colOutputScript = isSegwit ? col.colPaymentVariants.p2wsh.redeem.output : col.colPaymentVariants.p2sh.redeem.output
+
+      inputsToSign.push({ inputTxHex: col.txRaw, index: col.colVout.index, txInputIndex: i, vout: col.colVout, outputScript: colOutputScript })
+      addresses.push(address)
+    }
+
+    // inputs consists of [{ inputTxHex, index, vout, outputScript }]
+    const signatures = await this.getMethod('signBatchP2SHTransaction')(
+      inputsToSign,
+      addresses,
+      tx,
+      lockTime,
+      isSegwit
+    )
+
+    return signatures
   }
 
   finalizeTx (tx, col, i) {

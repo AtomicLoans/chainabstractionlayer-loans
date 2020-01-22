@@ -171,7 +171,7 @@ async function lockCollateral (chain, customExpiration) {
   const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
 
   if (customExpiration) {
-    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 100000
     colParams.expirations[customExpiration] = curTimeExpiration
   }
 
