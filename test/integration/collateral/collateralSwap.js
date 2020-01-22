@@ -171,7 +171,7 @@ async function lockCollateral (chain, customExpiration) {
   const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
 
   if (customExpiration) {
-    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 100000
     colParams.expirations[customExpiration] = curTimeExpiration
   }
 
@@ -192,19 +192,19 @@ function getVinRedeemScript (vin) {
 describe('Collateral Swap Flow', function () {
   this.timeout(config.timeout)
 
-  describe('Bitcoin - Ledger', () => {
-    before(async function () { await importBitcoinAddresses(chains.bitcoinWithLedger) })
-    beforeEach(async function () { await fundUnusedBitcoinAddress(chains.bitcoinWithLedger) })
-    testCollateral(chains.bitcoinWithLedger)
-  })
+  // describe('Bitcoin - Ledger', () => {
+  //   before(async function () { await importBitcoinAddresses(chains.bitcoinWithLedger) })
+  //   beforeEach(async function () { await fundUnusedBitcoinAddress(chains.bitcoinWithLedger) })
+  //   testCollateral(chains.bitcoinWithLedger)
+  // })
 
-  describe('Bitcoin - Node', () => {
-    testCollateral(chains.bitcoinWithNode)
-  })
+  // describe('Bitcoin - Node', () => {
+  //   testCollateral(chains.bitcoinWithNode)
+  // })
 
-  describe('Bitcoin - Js', () => {
-    before(async function () { await importBitcoinAddresses(chains.bitcoinWithJs) })
-    beforeEach(async function () { await fundUnusedBitcoinAddress(chains.bitcoinWithJs) })
-    testCollateral(chains.bitcoinWithJs)
-  })
+  // describe('Bitcoin - Js', () => {
+  //   before(async function () { await importBitcoinAddresses(chains.bitcoinWithJs) })
+  //   beforeEach(async function () { await fundUnusedBitcoinAddress(chains.bitcoinWithJs) })
+  //   testCollateral(chains.bitcoinWithJs)
+  // })
 })

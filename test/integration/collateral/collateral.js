@@ -218,6 +218,34 @@ function testCollateral (chain) {
     const reclaimTx = await chain.client.loan.collateral.reclaimAll(...reclaimParams)
     await chains.bitcoinWithNode.client.chain.generateBlock(1)
   })
+
+  it.only('should allow reclaiming of all collateral after locking multiple times', async () => {
+    let colParams = await getCollateralParams(chain)
+    const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockTxHash = await chain.client.loan.collateral.lock(...lockParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockRefundableParams = [colParams.values.refundableValue, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockRefundableTxHash = await chain.client.loan.collateral.lockRefundable(...lockRefundableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockSeizableParams = [colParams.values.seizableValue, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockSeizableTxHash = await chain.client.loan.collateral.lockSeizable(...lockSeizableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockTxHash2 = await chain.client.loan.collateral.lock(...lockParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockSeizableTxHash2 = await chain.client.loan.collateral.lockSeizable(...lockSeizableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    console.log('test1')
+
+    console.log('[[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secrets.secretB1, colParams.secretHashes, colParams.expirations]', [[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secrets.secretB1, colParams.secretHashes, colParams.expirations])
+
+    const refundManyParams = [[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secrets.secretB1, colParams.secretHashes, colParams.expirations]
+    const refundManyTxHash = await chain.client.loan.collateral.refundMany(...refundManyParams)
+  })
 }
 
 async function lockCollateral (chain, customExpiration) {
@@ -225,7 +253,7 @@ async function lockCollateral (chain, customExpiration) {
   const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
 
   if (customExpiration) {
-    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 100000
     colParams.expirations[customExpiration] = curTimeExpiration
   }
 
@@ -252,13 +280,13 @@ describe('Collateral Flow', function () {
     testCollateral(chains.bitcoinWithLedger)
   })
 
-  describe('Bitcoin - Node', () => {
-    testCollateral(chains.bitcoinWithNode)
-  })
+  // describe('Bitcoin - Node', () => {
+  //   testCollateral(chains.bitcoinWithNode)
+  // })
 
-  describe('Bitcoin - Js', () => {
-    before(async function () { await importBitcoinAddresses(chains.bitcoinWithJs) })
-    beforeEach(async function () { await fundUnusedBitcoinAddress(chains.bitcoinWithJs) })
-    testCollateral(chains.bitcoinWithJs)
-  })
+  // describe('Bitcoin - Js', () => {
+  //   before(async function () { await importBitcoinAddresses(chains.bitcoinWithJs) })
+  //   beforeEach(async function () { await fundUnusedBitcoinAddress(chains.bitcoinWithJs) })
+  //   testCollateral(chains.bitcoinWithJs)
+  // })
 })
