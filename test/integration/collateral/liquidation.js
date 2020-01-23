@@ -50,7 +50,7 @@ function testCollateral (chain) {
   })
 
   it('should lock collateral, liquidate by multisigsend to collateral swap and claim by liquidator', async () => {
-    const { lockTxHash, colParams } = await lockCollateral(chain, 'approveExpiration')
+    const { lockTxHash, colParams } = await lockCollateral(chain, 'liquidationExpiration')
 
     const swapSecretHashes = {
       secretHashA1: colParams.secretHashes.secretHashA2,
@@ -59,7 +59,7 @@ function testCollateral (chain) {
       secretHashD1: colParams.secretHashes.secretHashD1
     }
 
-    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 100000
     colParams.expirations.swapExpiration = curTimeExpiration
 
     const swapParams = [colParams.pubKeys, swapSecretHashes, colParams.expirations]
@@ -127,7 +127,7 @@ function testCollateral (chain) {
       secretHashD1: colParams.secretHashes.secretHashD1
     }
 
-    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 100000
     colParams.expirations.swapExpiration = curTimeExpiration
 
     const swapParams = [colParams.pubKeys, swapSecretHashes, colParams.expirations]
@@ -216,7 +216,7 @@ function testCollateral (chain) {
     let colParams = await getCollateralParams(chain)
     const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
 
-    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 100000
     colParams.expirations.approveExpiration = curTimeExpiration
     colParams.expirations.liquidationExpiration = curTimeExpiration
     colParams.expirations.swapExpiration = curTimeExpiration
@@ -321,7 +321,7 @@ async function lockCollateral (chain, customExpiration) {
   const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
 
   if (customExpiration) {
-    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 1000
+    const curTimeExpiration = Math.floor((new Date()).getTime() / 1000) - 100000
     colParams.expirations[customExpiration] = curTimeExpiration
   }
 

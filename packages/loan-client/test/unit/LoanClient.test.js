@@ -19,5 +19,21 @@ describe('Client methods without providers', () => {
     it('should throw NoProviderError', async () => {
       return expect(client.collateral.lock(1)).to.be.rejectedWith(/No provider provided/)
     })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.lockRefundable(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.lockSeizable(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.getLockAddresses(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.refund(1)).to.be.rejectedWith(/No provider provided/)
+    })
   })
 })
