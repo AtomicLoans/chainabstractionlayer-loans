@@ -35,5 +35,53 @@ describe('Client methods without providers', () => {
     it('should throw NoProviderError', async () => {
       return expect(client.collateral.refund(1)).to.be.rejectedWith(/No provider provided/)
     })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.refundRefundable(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.refundSeizable(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.refundMany(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.multisigSign(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.multisigBuild(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.multisigSend(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.multisigSignMany(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.multisigBuildMany(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.multisigSendMany(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.seize(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.reclaimOne(1)).to.be.rejectedWith(/No provider provided/)
+    })
+
+    it('should throw NoProviderError', async () => {
+      return expect(client.collateral.reclaimAll(1)).to.be.rejectedWith(/No provider provided/)
+    })
   })
 })

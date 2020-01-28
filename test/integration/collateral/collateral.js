@@ -242,6 +242,116 @@ function testCollateral (chain) {
     const refundManyParams = [[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secrets.secretB1, colParams.secretHashes, colParams.expirations]
     const refundManyTxHash = await chain.client.loan.collateral.refundMany(...refundManyParams)
   })
+
+  it('should allow multisig signing for all collateral after locking multiple times', async () => {
+    let colParams = await getCollateralParams(chain)
+    const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockTxHash = await chain.client.loan.collateral.lock(...lockParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockRefundableParams = [colParams.values.refundableValue, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockRefundableTxHash = await chain.client.loan.collateral.lockRefundable(...lockRefundableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockSeizableParams = [colParams.values.seizableValue, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockSeizableTxHash = await chain.client.loan.collateral.lockSeizable(...lockSeizableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockTxHash2 = await chain.client.loan.collateral.lock(...lockParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockSeizableTxHash2 = await chain.client.loan.collateral.lockSeizable(...lockSeizableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const { address: to } = await chain.client.getMethod('getUnusedAddress')()
+
+    const multisigSignManyParams = [[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
+    const multisigSignSigs = await chain.client.loan.collateral.multisigSignMany(...multisigSignManyParams)
+  })
+
+  it('should allow multisig signing and building for all collateral after locking multiple times', async () => {
+    let colParams = await getCollateralParams(chain)
+    const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockTxHash = await chain.client.loan.collateral.lock(...lockParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockRefundableParams = [colParams.values.refundableValue, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockRefundableTxHash = await chain.client.loan.collateral.lockRefundable(...lockRefundableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockSeizableParams = [colParams.values.seizableValue, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockSeizableTxHash = await chain.client.loan.collateral.lockSeizable(...lockSeizableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockTxHash2 = await chain.client.loan.collateral.lock(...lockParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockSeizableTxHash2 = await chain.client.loan.collateral.lockSeizable(...lockSeizableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const { address: to } = await chain.client.getMethod('getUnusedAddress')()
+
+    const multisigSignManyParamsBorrower = [[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
+    const multisigSignSigsBorrower = await chain.client.loan.collateral.multisigSignMany(...multisigSignManyParamsBorrower)
+
+    const multisigSignManyParamsLender = [[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'lender', to]
+    const multisigSignSigsLender = await chain.client.loan.collateral.multisigSignMany(...multisigSignManyParamsLender)
+
+    const sigs = { partyOne: multisigSignSigsBorrower, partyTwo: multisigSignSigsLender }
+
+    const multisigSendManyTxRaw = await chain.client.loan.collateral.multisigBuildMany([lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
+    const multisigSendManyTx = await chain.client.getMethod('decodeRawTransaction')(multisigSendManyTxRaw)
+
+    const multisigSendManyVouts = multisigSendManyTx._raw.data.vout
+    const multisigSendManyVins = multisigSendManyTx._raw.data.vin
+
+    expect(multisigSendManyVins.length).to.equal(7)
+    expect(multisigSendManyVouts.length).to.equal(1)
+  })
+
+  it.only('should allow multisig signing and sending for all collateral after locking multiple times', async () => {
+    let colParams = await getCollateralParams(chain)
+    const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockTxHash = await chain.client.loan.collateral.lock(...lockParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockRefundableParams = [colParams.values.refundableValue, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockRefundableTxHash = await chain.client.loan.collateral.lockRefundable(...lockRefundableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockSeizableParams = [colParams.values.seizableValue, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
+    const lockSeizableTxHash = await chain.client.loan.collateral.lockSeizable(...lockSeizableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockTxHash2 = await chain.client.loan.collateral.lock(...lockParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const lockSeizableTxHash2 = await chain.client.loan.collateral.lockSeizable(...lockSeizableParams)
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const { address: to } = await chain.client.getMethod('getUnusedAddress')()
+
+    const multisigSignManyParamsBorrower = [[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'borrower', to]
+    const multisigSignSigsBorrower = await chain.client.loan.collateral.multisigSignMany(...multisigSignManyParamsBorrower)
+
+    const multisigSignManyParamsLender = [[lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], colParams.pubKeys, colParams.secretHashes, colParams.expirations, 'lender', to]
+    const multisigSignSigsLender = await chain.client.loan.collateral.multisigSignMany(...multisigSignManyParamsLender)
+
+    const sigs = { partyOne: multisigSignSigsBorrower, partyTwo: multisigSignSigsLender }
+
+    const multisigSendManyTxHash = await chain.client.loan.collateral.multisigSendMany([lockTxHash, lockRefundableTxHash, lockSeizableTxHash, lockTxHash2, lockSeizableTxHash2], sigs, colParams.pubKeys, colParams.secretHashes, colParams.expirations, to)
+
+    await chains.bitcoinWithNode.client.chain.generateBlock(1)
+
+    const multisigSendManyTxRaw = await chain.client.getMethod('getRawTransactionByHash')(multisigSendManyTxHash)
+    const multisigSendManyTx = await chain.client.getMethod('decodeRawTransaction')(multisigSendManyTxRaw)
+
+    const multisigSendManyVouts = multisigSendManyTx._raw.data.vout
+    const multisigSendManyVins = multisigSendManyTx._raw.data.vin
+
+    expect(multisigSendManyVins.length).to.equal(7)
+    expect(multisigSendManyVouts.length).to.equal(1)
+  })
 }
 
 async function lockCollateral (chain, customExpiration) {
