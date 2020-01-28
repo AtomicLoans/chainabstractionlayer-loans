@@ -51,6 +51,18 @@ export default class Collateral {
     return this.client.getMethod('multisigSend')(txHash, sigs, pubKeys, secrets, secretHashes, expirations, to)
   }
 
+  async multisigSignMany (txHashes, pubKeys, secretHashes, expirations, party, outputs) {
+    return this.client.getMethod('multisigSignMany')(txHashes, pubKeys, secretHashes, expirations, party, outputs)
+  }
+
+  async multisigBuildMany (txHashes, sigs, pubKeys, secretHashes, expirations, outputs) {
+    return this.client.getMethod('multisigBuildMany')(txHashes, sigs, pubKeys, secretHashes, expirations, outputs)
+  }
+
+  async multisigSendMany (txHashes, sigs, pubKeys, secretHashes, expirations, outputs) {
+    return this.client.getMethod('multisigSendMany')(txHashes, sigs, pubKeys, secretHashes, expirations, outputs)
+  }
+
   async seize (txHash, pubKeys, secret, secretHashes, expirations) {
     return this.client.getMethod('seize')(txHash, pubKeys, secret, secretHashes, expirations)
   }

@@ -279,6 +279,19 @@ export default class BitcoinCollateralProvider extends Provider {
     return this.getMethod('sendRawTransaction')(txHex)
   }
 
+  async multisigSignMany (txHashes, pubKeys, secretHashes, expirations, party, outputs) {
+    return this._multisigSignMany(txHashes, pubKeys, secretHashes, expirations, party, outputs)
+  }
+
+  async multisigBuildMany (txHashes, sigs, pubKeys, secretHashes, expirations, outputs) {
+    return this._multisigBuildMany(txHashes, sigs, pubKeys, secretHashes, expirations, outputs)
+  }
+
+  async multisigSendMany (txHashes, sigs, pubKeys, secretHashes, expirations, outputs) {
+    const txHex = await this._multisigBuildMany(txHashes, sigs, pubKeys, secretHashes, expirations, outputs)
+    return this.getMethod('sendRawTransaction')(txHex)
+  }
+
   async seize (txHash, pubKeys, secret, secretHashes, expirations) {
     const secrets = [secret]
     return this._refundOne(txHash, pubKeys, secrets, secretHashes, expirations, 'seizurePeriod', true)
@@ -524,6 +537,183 @@ export default class BitcoinCollateralProvider extends Provider {
 
     this.finalizeTx(tx, ref, 0)
     this.finalizeTx(tx, sei, 1)
+
+    return tx.toHex()
+  }
+
+  async _multisigSignMany (txHashes, pubKeys, secretHashes, expirations, party, outputs) {
+    const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
+    const period = 'liquidationPeriod'
+    const network = this._bitcoinJsNetwork
+
+    const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : arbiterPubKey
+    const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
+
+    const { refundableAddress, seizableAddress } = this.getCollateralAddresses(pubKeys, secretHashes, expirations)
+
+    let cols = []
+
+    for (let i = 0; i < txHashes.length; i++) {
+      const initiationTxHash = txHashes[i]
+      let hasRefundable = false
+      let hasSeizable = false
+
+      const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
+      const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
+      const vouts = initiationTx._raw.data.vout
+
+      for (let j = 0; j < vouts.length; j++) {
+        const { scriptPubKey: { addresses } } = vouts[j]
+        const address = addresses[0]
+
+        if (address === refundableAddress) { hasRefundable = true }
+        if (address === seizableAddress) { hasSeizable = true }
+      }
+
+      if (hasRefundable && hasSeizable) {
+        let ref = {} // Refundable Object
+        let sei = {} // Seizable Object
+
+        ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+        sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+
+        ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
+        sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+
+        this.setPaymentVariants(initiationTx, ref)
+        this.setPaymentVariants(initiationTx, sei)
+
+        ref.colVout.txid = initiationTxHash
+        sei.colVout.txid = initiationTxHash
+
+        ref.colVout.index = 0
+        sei.colVout.index = 1
+
+        ref.txRaw = initiationTxRaw
+        sei.txRaw = initiationTxRaw
+
+        ref.seizable = false
+        sei.seizable = true
+
+        cols.push(ref)
+        cols.push(sei)
+      } else if (hasRefundable || hasSeizable) {
+        const seizable = hasSeizable ? true : false
+
+        let col = {} // Collateral Object
+
+        col.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, seizable)
+        col.colPaymentVariants = this.getCollateralPaymentVariants(col.output)
+        this.setPaymentVariants(initiationTx, col)
+        col.colVout.txid = initiationTxHash
+
+        col.colVout.index = 0
+
+        col.txRaw = initiationTxRaw
+
+        col.seizable = seizable
+
+        cols.push(col)
+      } else {
+        throw new Error(`The Tx Hash ${initiationTxHash} does not contain refundable or seizable collateral`)
+      }
+    }
+
+    const estimateFees = true
+    const tx = await this.buildFullManyColTx(period, cols, expirations, outputs, estimateFees)
+
+    return this.createManySigs(tx, address, cols, expirations, period)
+  }
+
+  async _multisigBuildMany (txHashes, sigs, pubKeys, secretHashes, expirations, outputs) {
+    const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
+    const { approveExpiration, liquidationExpiration, seizureExpiration } = expirations
+    const period = 'liquidationPeriod'
+    const network = this._bitcoinJsNetwork
+
+    const { partyOne: partyOneSigs, partyTwo: partyTwoSigs } = sigs
+
+    const { refundableAddress, seizableAddress } = this.getCollateralAddresses(pubKeys, secretHashes, expirations)
+
+    let cols = []
+
+    for (let i = 0; i < txHashes.length; i++) {
+      const initiationTxHash = txHashes[i]
+      let hasRefundable = false
+      let hasSeizable = false
+
+      const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
+      const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
+      const vouts = initiationTx._raw.data.vout
+
+      for (let j = 0; j < vouts.length; j++) {
+        const { scriptPubKey: { addresses } } = vouts[j]
+        const address = addresses[0]
+
+        if (address === refundableAddress) { hasRefundable = true }
+        if (address === seizableAddress) { hasSeizable = true }
+      }
+
+      if (hasRefundable && hasSeizable) {
+        let ref = {} // Refundable Object
+        let sei = {} // Seizable Object
+
+        ref.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, false)
+        sei.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, true)
+
+        ref.colPaymentVariants = this.getCollateralPaymentVariants(ref.output)
+        sei.colPaymentVariants = this.getCollateralPaymentVariants(sei.output)
+
+        this.setPaymentVariants(initiationTx, ref)
+        this.setPaymentVariants(initiationTx, sei)
+
+        ref.colVout.txid = initiationTxHash
+        sei.colVout.txid = initiationTxHash
+
+        ref.colVout.index = 0
+        sei.colVout.index = 1
+
+        ref.txRaw = initiationTxRaw
+        sei.txRaw = initiationTxRaw
+
+        ref.seizable = false
+        sei.seizable = true
+
+        cols.push(ref)
+        cols.push(sei)
+      } else if (hasRefundable || hasSeizable) {
+        const seizable = hasSeizable ? true : false
+
+        let col = {} // Collateral Object
+
+        col.output = this.getCollateralOutput(pubKeys, secretHashes, expirations, seizable)
+        col.colPaymentVariants = this.getCollateralPaymentVariants(col.output)
+        this.setPaymentVariants(initiationTx, col)
+        col.colVout.txid = initiationTxHash
+
+        col.colVout.index = 0
+
+        col.txRaw = initiationTxRaw
+
+        col.seizable = seizable
+
+        cols.push(col)
+      } else {
+        throw new Error(`The Tx Hash ${initiationTxHash} does not contain refundable or seizable collateral`)
+      }
+    }
+
+    const estimateFees = true
+    const tx = await this.buildFullManyColTx(period, cols, expirations, outputs, estimateFees)
+
+    for (let k = 0; k < cols.length; k++) {
+      let col = cols[k]
+
+      this.setHashForSigOrWit(tx, col, k)
+      col.colInput = this.getCollateralInput([partyOneSigs[k], partyTwoSigs[k]], period, [], null)
+      this.finalizeTx(tx, col, k)
+    }
 
     return tx.toHex()
   }
