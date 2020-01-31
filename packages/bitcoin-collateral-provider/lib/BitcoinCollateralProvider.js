@@ -792,7 +792,7 @@ export default class BitcoinCollateralProvider extends Provider {
     txb.addInput(sei.colVout.txid, sei.colVout.n, 0, sei.prevOutScript)
 
     if (outputs.length === 1) {
-      txb.addOutput(addressToString(outputs[0].address), ref.colVout.vSat + sei.colVout.vSat - txfee)
+      txb.addOutput(addressToString(outputs[0].address), ref.colVout.vSat.plus(sei.colVout.vSat) - txfee)
     } else if (outputs.length === 2) {
       txb.addOutput(addressToString(outputs[0].address), outputs[0].value === undefined ? ref.colVout.vSat - (txfee / 2) : outputs[0].value)
       txb.addOutput(addressToString(outputs[1].address), outputs[1].value === undefined ? sei.colVout.vSat - (txfee / 2) : outputs[1].value)
