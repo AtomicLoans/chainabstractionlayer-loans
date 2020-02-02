@@ -728,6 +728,7 @@ export default class BitcoinCollateralProvider extends Provider {
         col.colVout = vout
       }
     }
+    if (col.colVout === undefined) { throw new Error('Could not find transaction based on redeem script') }
   }
 
   buildColTx (period, col, expirations, to) {
