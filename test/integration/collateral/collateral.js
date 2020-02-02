@@ -309,7 +309,7 @@ function testCollateral (chain) {
     expect(multisigSendManyVouts.length).to.equal(1)
   })
 
-  it.only('should allow multisig signing and sending for all collateral after locking multiple times', async () => {
+  it('should allow multisig signing and sending for all collateral after locking multiple times', async () => {
     let colParams = await getCollateralParams(chain)
     const lockParams = [colParams.values, colParams.pubKeys, colParams.secretHashes, colParams.expirations]
     const lockTxHash = await chain.client.loan.collateral.lock(...lockParams)
