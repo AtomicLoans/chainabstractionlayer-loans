@@ -749,7 +749,11 @@ export default class BitcoinCollateralProvider extends Provider {
 
     // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
     // TODO: use node's feePerByte
-    const txfee = calculateFee(6, 6, 14)
+    const numInputs = 1
+    const numOutputs = 1
+    const feePerByte = 42 // Note: feePerByte is extremely high because inputs bytes is based on 148 bytes, which is incorrect for this redeem script
+
+    const txfee = calculateFee(numInputs, numOutputs, feePerByte) // 7644 satoshis
 
     txb.addInput(col.colVout.txid, col.colVout.n, 0, col.prevOutScript)
     txb.addOutput(addressToString(to), col.colVout.vSat - txfee)
@@ -786,7 +790,10 @@ export default class BitcoinCollateralProvider extends Provider {
       const feePerByte = Math.ceil(await this.getMethod('getFeePerByte')())
       txfee = BigNumber(feePerByte).times(364).toNumber()
     } else {
-      txfee = calculateFee(6, 6, 14)
+      const numInputs = 2
+      const numOutputs = 2
+      const feePerByte = 42 // Note: feePerByte is extremely high because inputs bytes is based on 148 bytes, which is incorrect for this redeem script
+      txfee = calculateFee(numInputs, numOutputs, feePerByte) // 15288 satoshis
     }
 
     txb.addInput(ref.colVout.txid, ref.colVout.n, 0, ref.prevOutScript)
