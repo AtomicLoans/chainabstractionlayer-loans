@@ -4,8 +4,6 @@ import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import { chains, getUnusedPubKey, getCollateralParams, importBitcoinAddresses, fundUnusedBitcoinAddress } from '../common'
 import config from '../config'
-import { hash160 } from '@liquality/crypto'
-import { pubKeyToAddress } from '@liquality/bitcoin-utils'
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 

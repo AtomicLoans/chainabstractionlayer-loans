@@ -20,10 +20,10 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     super()
     this._network = chain.network
     if (!['p2wsh', 'p2sh_p2wsh', 'p2sh'].includes(mode.script)) {
-      throw new Error('Mode must be one of p2wsh, p2sh_p2wsh, p2sh')
+      throw new Error('Script mode must be one of p2wsh, p2sh_p2wsh, p2sh')
     }
     if (!['p2wpkh', 'p2sh_p2wpkh', 'p2pkh'].includes(mode.address)) {
-      throw new Error('Mode must be one of p2wpkh, p2sh_p2wpkh, p2pkh')
+      throw new Error('Address mode must be one of p2wpkh, p2sh_p2wpkh, p2pkh')
     }
     this._mode = mode
     if (this._network.name === networks.bitcoin.name) {
@@ -269,7 +269,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     this.setPaymentVariants(initiationTx, col)
     col.colVout.txid = initiationTxHash
 
-    const tx = this.buildColTx(period, col, expirations, address)
+    const estimateFees = true
+    const tx = await this.buildColTx(period, col, expirations, address, estimateFees)
 
     this.setHashForSigOrWit(tx, col, 0)
 
@@ -285,7 +286,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   async _refundAll (initiationTxHash, pubKeys, secrets, secretHashes, expirations, period) {
-    const { borrowerPubKey, lenderPubKey, arbiterPubKey, liquidatorPubKey } = pubKeys
+    const { borrowerPubKey, lenderPubKey, liquidatorPubKey } = pubKeys
     const network = this._bitcoinJsNetwork
     const pubKey = (period === 'claimPeriod') ? liquidatorPubKey : (period === 'seizurePeriod') ? lenderPubKey : borrowerPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
@@ -308,7 +309,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, address)
+    const estimateFees = true
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, address, estimateFees)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -330,7 +332,6 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   async _multisigWrite (initiationTxHash, pubKeys, secretHashes, expirations, party, to) {
     const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
     const period = 'liquidationPeriod'
-    const network = this._bitcoinJsNetwork
 
     const pubKey = party === 'lender' ? lenderPubKey : party === 'borrower' ? borrowerPubKey : arbiterPubKey
     const address = this.pubKeyToAddress(Buffer.from(pubKey, 'hex'))
@@ -353,7 +354,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, to)
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, to)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -362,9 +363,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   async _multisigMake (initiationTxHash, sigs, pubKeys, secretHashes, expirations, to) {
-    const { borrowerPubKey, lenderPubKey, arbiterPubKey } = pubKeys
     const period = 'liquidationPeriod'
-    const network = this._bitcoinJsNetwork
 
     const initiationTxRaw = await this.getMethod('getRawTransactionByHash')(initiationTxHash)
     const initiationTx = await this.getMethod('decodeRawTransaction')(initiationTxRaw)
@@ -384,7 +383,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ref.colVout.txid = initiationTxHash
     sei.colVout.txid = initiationTxHash
 
-    const tx = this.buildFullColTx(period, ref, sei, expirations, to)
+    const tx = await this.buildFullColTx(period, ref, sei, expirations, to)
 
     this.setHashForSigOrWit(tx, ref, 0)
     this.setHashForSigOrWit(tx, sei, 1)
@@ -411,7 +410,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     if (col.colVout === undefined) { throw new Error('Could not find transaction based on redeem script') }
   }
 
-  buildColTx (period, col, expirations, to) {
+  async buildColTx (period, col, expirations, to, estimateFees) {
     const { swapExpiration, liquidationExpiration } = expirations
     const network = this._bitcoinJsNetwork
 
@@ -427,9 +426,18 @@ export default class BitcoinCollateralSwapProvider extends Provider {
 
     col.prevOutScript = col.paymentVariant.output
 
-    // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
-    // TODO: use node's feePerByte
-    const txfee = calculateFee(6, 6, 14)
+    const isSegwit = col.paymentVariantName === 'p2wsh' || col.paymentVariantName === 'p2sh_p2wsh'
+
+    let txfee
+    if (estimateFees && isSegwit) {
+      const feePerByte = Math.ceil(await this.getMethod('getFeePerByte')())
+      txfee = BigNumber(feePerByte).times(198).toNumber()
+    } else {
+      const numInputs = 1
+      const numOutputs = 1
+      const feePerByte = 42
+      txfee = calculateFee(numInputs, numOutputs, feePerByte) // 7644 satoshis
+    }
 
     txb.addInput(col.colVout.txid, col.colVout.n, 0, col.prevOutScript)
     txb.addOutput(addressToString(to), col.colVout.vSat - txfee)
@@ -437,7 +445,7 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     return txb.buildIncomplete()
   }
 
-  buildFullColTx (period, ref, sei, expirations, outputs) {
+  async buildFullColTx (period, ref, sei, expirations, outputs, estimateFees) {
     if (!Array.isArray(outputs)) { outputs = [{ address: outputs }] }
 
     const { swapExpiration, liquidationExpiration } = expirations
@@ -457,9 +465,18 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     ref.prevOutScript = ref.paymentVariant.output
     sei.prevOutScript = sei.paymentVariant.output
 
-    // TODO: Implement proper fee calculation that counts bytes in inputs and outputs
-    // TODO: use node's feePerByte
-    const txfee = calculateFee(6, 6, 14)
+    const isSegwit = ref.paymentVariantName === 'p2wsh' || ref.paymentVariantName === 'p2sh_p2wsh'
+
+    let txfee
+    if (estimateFees && isSegwit) {
+      const feePerByte = Math.ceil(await this.getMethod('getFeePerByte')())
+      txfee = BigNumber(feePerByte).times(405).toNumber()
+    } else {
+      const numInputs = 2
+      const numOutputs = 2
+      const feePerByte = 42
+      txfee = calculateFee(numInputs, numOutputs, feePerByte) // 15288 satoshis
+    }
 
     txb.addInput(ref.colVout.txid, ref.colVout.n, 0, ref.prevOutScript)
     txb.addInput(sei.colVout.txid, sei.colVout.n, 0, sei.prevOutScript)
@@ -475,7 +492,6 @@ export default class BitcoinCollateralSwapProvider extends Provider {
   }
 
   setHashForSigOrWit (tx, col, i) {
-    const network = this._bitcoinJsNetwork
     const needsWitness = col.paymentVariantName === 'p2wsh' || col.paymentVariantName === 'p2sh_p2wsh'
 
     if (needsWitness) {
