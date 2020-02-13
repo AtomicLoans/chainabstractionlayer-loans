@@ -18,6 +18,16 @@ describe('Client methods without providers', () => {
     btcCollateralProvider = new BitcoinCollateralProvider({ network: bitcoinNetwork })
   })
 
+  describe('constructor', () => {
+    it('should throw error if constructed with incorrect script', async () => {
+      expect(function() { new BitcoinCollateralProvider({ network: bitcoinNetwork},{ script: 'incorrect' }) }).to.throw(Error)
+    })
+
+    it('should throw error if constructed with incorrect address', async () => {
+      expect(function() { new BitcoinCollateralProvider({ network: bitcoinNetwork},{ address: 'incorrect' }) }).to.throw(Error)
+    })
+  })
+
   describe('setPaymentVariants', () => {
     it('should throw if colVout undefined', async () => {
       const initiationTx = {
