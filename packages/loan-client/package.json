@@ -18,7 +18,7 @@
   "author": "AtomicLoans <info@atomicloans.io>",
   "license": "MIT",
   "dependencies": {
-    "@babel/runtime": "^7.4.3",
+    "@babel/runtime": "^7.8.4",
     "@liquality/client": "^0.4.3",
     "@liquality/crypto": "^0.4.3",
     "@liquality/errors": "^0.4.3",
