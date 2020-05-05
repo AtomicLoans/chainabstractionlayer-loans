@@ -5,10 +5,13 @@ import chaiAsPromised from 'chai-as-promised'
 import MetaMaskConnector from 'node-metamask'
 import { Client, Provider, providers, crypto } from '@liquality/bundle'
 import { LoanClient, providers as lproviders } from '../../packages/loan-bundle/lib'
+import MarketClient from '../../packages/market-client/lib'
+import HDWalletProvider from '@truffle/hdwallet-provider'
 import { sleep } from '@liquality/utils'
 import { sha256, hash160 } from '@liquality/crypto'
 import { findLast } from 'lodash'
 import { generateMnemonic } from 'bip39'
+import Web3 from 'web3'
 import config from './config'
 
 chai.use(chaiAsPromised)
@@ -49,6 +52,10 @@ bitcoinNodeCollateralSwap.loan = bitcoinLoanNodeCollateralSwap
 bitcoinNodeCollateralSwap.addProvider(new providers.bitcoin.BitcoinRpcProvider(config.bitcoin.rpc.host, config.bitcoin.rpc.username, config.bitcoin.rpc.password))
 bitcoinNodeCollateralSwap.loan.addProvider(new lproviders.bitcoin.BitcoinCollateralSwapProvider({ network: bitcoinNetworks[config.bitcoin.network] }, { script: 'p2sh', address: 'p2wpkh'}))
 
+const bitcoinWithEsplora = new Client()
+bitcoinWithEsplora.addProvider(new providers.bitcoin.BitcoinEsploraApiProvider('https://blockstream.info/api'))
+bitcoinWithEsplora.addProvider(new providers.bitcoin.BitcoinJsWalletProvider(bitcoinNetworks.bitcoin, generateMnemonic(256), 'bech32'))
+
 const ethereumNetworks = providers.ethereum.networks
 const ethereumWithMetaMask = new Client()
 ethereumWithMetaMask.addProvider(new providers.ethereum.EthereumRpcProvider(config.ethereum.rpc.host))
@@ -80,6 +87,18 @@ erc20WithLedger.addProvider(new providers.ethereum.EthereumRpcProvider(config.et
 erc20WithLedger.addProvider(new providers.ethereum.EthereumLedgerProvider())
 erc20WithLedger.addProvider(new providers.ethereum.EthereumErc20Provider('We dont have an addres yet'))
 erc20WithLedger.addProvider(new providers.ethereum.EthereumErc20SwapProvider())
+
+const httpProvider = new Web3.providers.HttpProvider('https://mainnet.infura.io/v3/7d0d81d0919f4f05b9ab6634be01ee73')
+const provider = new HDWalletProvider(generateMnemonic(256), httpProvider, 0, 1, false)
+const web3 = new Web3(provider)
+
+const daiMarket = new MarketClient(config.ethereum.contracts.dai, bitcoinWithEsplora, web3, 'ether')
+const usdcMarket = new MarketClient(config.ethereum.contracts.usdc, bitcoinWithEsplora, web3, 'mwei')
+
+const markets = [
+  { client: daiMarket, currency: 'DAI' },
+  { client: usdcMarket, currency: 'USDC' }
+]
 
 const chains = {
   bitcoinWithLedger: { id: 'Bitcoin Ledger', name: 'bitcoin', client: bitcoinWithLedger },
@@ -350,5 +369,6 @@ export {
   getUnusedPubKeyAndAddress,
   getCollateralParams,
   importBitcoinAddresses,
-  fundUnusedBitcoinAddress
+  fundUnusedBitcoinAddress,
+  markets
 }
