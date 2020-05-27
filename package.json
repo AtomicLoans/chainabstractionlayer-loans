@@ -6,7 +6,7 @@
     "@babel/plugin-transform-runtime": "^7.10.1",
     "@babel/polyfill": "^7.10.1",
     "@babel/preset-env": "^7.10.1",
-    "@babel/register": "^7.4.0",
+    "@babel/register": "^7.10.1",
     "@truffle/hdwallet-provider": "^1.0.34",
     "axios": "^0.19.2",
     "babel-loader": "^8.0.5",
