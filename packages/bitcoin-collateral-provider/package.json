@@ -19,7 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "@atomicloans/provider": "^0.4.2",
-    "@babel/runtime": "^7.4.3",
+    "@babel/runtime": "^7.10.1",
     "@liquality/bitcoin-networks": "^0.4.3",
     "@liquality/bitcoin-utils": "^0.4.3",
     "@liquality/crypto": "^0.4.3",
