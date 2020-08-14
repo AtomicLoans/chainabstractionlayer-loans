@@ -72,6 +72,8 @@ export default class BitcoinCollateralSwapProvider extends Provider {
     const seizablePubKeyHash = seizable ? lenderPubKeyHash : borrowerPubKeyHash
 
     // Bitcoin Collateral Swap Contract in Minsc
+    // https://docs.atomic.loans/protocol/bitcoin-scripts/collateral-swap-contract
+
     // $claim = pk(liquidator) && sha256(D1) && 2 of [ sha256(A1), sha256(B1), sha256(C1) ];
     // $revert = 2 of [ pk(borrower), pk(lender), pk(arbiter) ];
     // $seize = pk(seizable) && older(1 month 1 week);
