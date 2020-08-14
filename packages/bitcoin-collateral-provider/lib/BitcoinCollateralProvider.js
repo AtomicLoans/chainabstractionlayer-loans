@@ -82,6 +82,8 @@ export default class BitcoinCollateralProvider extends Provider {
     // $reclaim || $liquidate || $seize || $refund
 
     // Note: 1 month represents loan expiration
+    //       1 month, 1 week represents liquidation expiration
+    //       1 month, 1 week, 2 days represents seizure expiration
 
     return bitcoin.script.compile([
       OPS.OP_IF,
